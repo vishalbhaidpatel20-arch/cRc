@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\ContactController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -17,8 +20,35 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
 
+    // Companies and contacts. Admin-only routes are declared first so that
+    // /companies/create is not captured by /companies/{company}.
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
+        Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
+        Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])->name('companies.edit');
+        Route::put('/companies/{company}', [CompanyController::class, 'update'])->name('companies.update');
+        Route::patch('/companies/{company}/active', [CompanyController::class, 'toggleActive'])->name('companies.active');
+
+        Route::get('/contacts/create', [ContactController::class, 'create'])->name('contacts.create');
+        Route::post('/contacts', [ContactController::class, 'store'])->name('contacts.store');
+        Route::get('/contacts/{contact}/edit', [ContactController::class, 'edit'])->name('contacts.edit');
+        Route::put('/contacts/{contact}', [ContactController::class, 'update'])->name('contacts.update');
+        Route::patch('/contacts/{contact}/active', [ContactController::class, 'toggleActive'])->name('contacts.active');
+    });
+
+    // Read-only for every logged-in user (agents can view all companies and contacts).
+    Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
+    Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
+    Route::get('/contacts', [ContactController::class, 'index'])->name('contacts.index');
+    Route::get('/contacts/{contact}', [ContactController::class, 'show'])->name('contacts.show');
+
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
         Route::view('/', 'admin.dashboard')->name('dashboard');
+
+        // Only admins can create agent accounts. There is no public /register route.
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
     });
 
     Route::middleware('role:agent')->prefix('agent')->name('agent.')->group(function () {
