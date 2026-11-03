@@ -36,6 +36,14 @@ class SecurityJourneyTest extends TestCase
             ['GET', '/contacts/1/edit'],
             ['PUT', '/contacts/1'],
             ['PATCH', '/contacts/1/active'],
+            ['GET', '/tickets'],
+            ['GET', '/tickets/create'],
+            ['POST', '/tickets'],
+            ['GET', '/tickets/1'],
+            ['GET', '/tickets/1/edit'],
+            ['PUT', '/tickets/1'],
+            ['POST', '/tickets/1/assign'],
+            ['POST', '/notifications/read'],
             ['POST', '/logout'],
         ];
     }

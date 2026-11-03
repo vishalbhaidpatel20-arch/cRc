@@ -34,6 +34,11 @@
         .btn.light{background:#e4e7eb;color:#1f2933}
         .tag{font-size:.75rem;background:#e4e7eb;border-radius:999px;padding:.1rem .5rem}
         .tag.off{background:#fde8e8;color:#b42318}
+        .tag.critical{background:#fde8e8;color:#b42318}
+        .tag.high{background:#fff0d6;color:#9a5b00}
+        .tag.medium{background:#e7f0ff;color:#1d4e9e}
+        .tag.low{background:#e4e7eb;color:#52606d}
+        .overdue{color:#b42318;font-weight:600}
     </style>
 </head>
 <body>
@@ -44,6 +49,7 @@
                 <img class="logo" src="{{ asset('images/crc-badge.svg') }}" alt="cRc, Customer Relationship Console" title="cRc, Customer Relationship Console">
             </a>
             <a href="{{ route(auth()->user()->homeRoute()) }}">Dashboard</a>
+            <a href="{{ route('tickets.index') }}">{{ auth()->user()->isAdmin() ? 'Tickets' : 'My tickets' }}</a>
             <a href="{{ route('companies.index') }}">Companies</a>
             <a href="{{ route('contacts.index') }}">Contacts</a>
             @if(auth()->user()->isAdmin())<a href="{{ route('admin.users.index') }}">Users</a>@endif

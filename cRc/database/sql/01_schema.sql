@@ -1,5 +1,5 @@
 -- =====================================================================
--- 01_schema.sql  -  13 tables, in dependency order (MariaDB 10.4 / MySQL 8)
+-- 01_schema.sql  -  14 tables, in dependency order (MariaDB 10.4 / MySQL 8)
 -- Delete rules:  RESTRICT = protect company/user history (no hard deletes;
 --                use is_active instead)
 --                CASCADE  = child records die with their parent
@@ -253,4 +253,18 @@ CREATE TABLE message_templates (
   is_active    TINYINT(1)   NOT NULL DEFAULT 1,
   PRIMARY KEY (template_id),
   UNIQUE KEY uq_templates_name_channel (name, channel)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 14. notifications (Laravel database notifications: "new assignment" alerts) -
+CREATE TABLE notifications (
+  id               CHAR(36)        NOT NULL,
+  type             VARCHAR(255)    NOT NULL,
+  notifiable_type  VARCHAR(255)    NOT NULL,
+  notifiable_id    BIGINT UNSIGNED NOT NULL,
+  data             TEXT            NOT NULL,
+  read_at          TIMESTAMP       NULL,
+  created_at       TIMESTAMP       NULL,
+  updated_at       TIMESTAMP       NULL,
+  PRIMARY KEY (id),
+  KEY notifications_notifiable_type_notifiable_id_index (notifiable_type, notifiable_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

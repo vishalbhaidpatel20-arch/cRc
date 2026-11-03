@@ -76,6 +76,18 @@ Only values the tests assert on are listed. Everything else is random from the f
 | Other emails | `x@example.com` (bad logins for the throttle test), `target@example.com`, `victim@example.com` |
 | Company | `Some Co` plus a random company and contact for the URL list |
 | Throttle | 5 bad attempts allowed per minute; the 6th returns 429 |
+| Route list | `protectedRoutes()` now also lists the ticket routes (`/tickets`, `/tickets/create`, `/tickets/1`, `/tickets/1/edit`, `/tickets/1/assign`) and `POST /notifications/read` |
+
+### TicketAssignmentJourneyTest (milestone 3)
+| Data | Value |
+|---|---|
+| Admin | `Boss Admin` (random email), password `password` |
+| Agents | `Anna Agent` (`anna@example.com`), `Ben Agent` (`ben@example.com`), password `password` |
+| Company / contact | `Initech` / `Peter Gibbons` |
+| Decoy ticket | `Ben only: printer jam`, assigned to Ben (must never appear for Anna) |
+| Ticket logged | `TPS report totals are wrong`, bug, critical, description `Cover sheet missing` |
+| Assignment reasons | `Anna handles Initech`, then `Anna is out` (reassigned to Ben) |
+| Second test | agent `Solo Agent` logs `How do I export?` for contact `Samir Nagheenanajar`; it is assigned to them |
 
 ## 3b. Fixed values used by the earlier (non-E2E) feature tests
 
@@ -120,6 +132,26 @@ These are single-feature tests in `tests/Feature/`. They use the same rules as s
 | Company filter | `In Company A` vs `In Company B` |
 | Company search | `Searchable Ltd` (city `Rajkot`, 3 contacts) vs decoy `Different Inc` |
 | Wildcard check | search term `%` must not match `Plain Person` |
+
+### TicketVisibilityTest (milestone 3, 13 tests)
+| Data | Value |
+|---|---|
+| Users | admin (random), agents `Alice Agent` and `Bob Agent` (password `password`) |
+| Tickets | `Alice invoice problem` (Alice), `Bob printer problem` (Bob), `Nobody owns this problem` (unassigned) |
+| Update payload | `Alice retitled`, status `in_progress`, priority `critical`; extra `assigned_to`/`contact_id`/`company_id` must be ignored |
+| Leak checks | search `printer`, company filter, `assigned=<Bob id>` and `assigned=unassigned` as Alice must show nothing of Bob's or the queue |
+| Ordering | titles `T-low`, `T-crit-new`, `T-crit-old`, `T-high` created 9, 1, 5, 2 days ago: expected order crit-old, crit-new, high, low |
+| Resolved | `Already fixed one` (hidden by default, shown with `status=resolved` / `all`) |
+| Dashboard | Alice: 1 critical + 1 resolved + the starting ticket = 2 open; Bob's 4 criticals not counted |
+
+### TicketAssignmentTest (milestone 3, 13 tests)
+| Data | Value |
+|---|---|
+| Users | admin (random), `Alice Agent`, `Bob Agent`, plus an inactive agent for rejection checks |
+| Ticket payload | bug, high, title `Invoice total is wrong`, description `Tax missing` |
+| Invalid values | contact `99999`, inactive contact, topic `rant`, priority `urgent`, empty title, inactive agent, admin as assignee |
+| Reasons | `Knows this client`, `Alice on leave` |
+| Moving ticket | `Moving ticket` (Alice to Bob); `Alert me please` (assignment alert on Alice's dashboard); `Waiting in queue` vs `Already owned` (assignee filter) |
 
 ### Unit
 `tests/Unit/ExampleTest.php`: Laravel's default placeholder (1 test, no data).
@@ -172,7 +204,7 @@ then load `database/sql/03_seed.sql`. This deletes any records entered by hand.
 
 ## 6. Test case index
 
-Suite total: **145 tests** = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 1 Unit placeholder + 87 unit tests + 14 E2E.
+Suite total: **173 tests** = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 1 Unit placeholder + 87 unit tests + 16 E2E.
 Per-test names for the earlier feature tests: `php artisan test tests/Feature --testdox`.
 
 ### Unit test classes (87)
@@ -189,7 +221,7 @@ Per-test names for the earlier feature tests: `php artisan test tests/Feature --
 
 Per-test names: `php artisan test tests/Unit --testdox`.
 
-### E2E journeys (14)
+### E2E journeys (16)
 
 | # | Test | File |
 |---|---|---|
@@ -207,3 +239,10 @@ Per-test names: `php artisan test tests/Unit --testdox`.
 | 12 | Login is throttled after five bad attempts | SecurityJourneyTest |
 | 13 | Wrong role gets 403 in both directions and the right role recovers | SecurityJourneyTest |
 | 14 | Logout really ends the session | SecurityJourneyTest |
+| 15 | Admin logs, assigns and reassigns a ticket; the agent sees only theirs; URL guessing is denied; history is kept | TicketAssignmentJourneyTest |
+| 16 | An agent logs a ticket for a client and it is assigned to them | TicketAssignmentJourneyTest |
+
+### Milestone 3 feature tests (26)
+`TicketVisibilityTest` (13): agent list and URL isolation, search/filter leak checks, global scope, policy, dashboard counts, queue order, resolved filter, guests.
+`TicketAssignmentTest` (13): create (admin/agent), validation, assign, reassign, history rows, admin-only assign, assign form visibility, unassigned filter, notifications.
+Names: `php artisan test tests/Feature --testdox`.

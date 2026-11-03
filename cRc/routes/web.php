@@ -1,6 +1,9 @@
 <?php
 
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Agent\DashboardController as AgentDashboardController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\TicketController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\ContactController;
@@ -52,6 +55,20 @@ Route::middleware(['auth', 'active'])->group(function () {
     });
 
     Route::middleware('role:agent')->prefix('agent')->name('agent.')->group(function () {
-        Route::view('/', 'agent.dashboard')->name('dashboard');
+        Route::get('/', AgentDashboardController::class)->name('dashboard');
     });
+
+    // Tickets. Admins and agents both use these routes; what an agent can see is decided by the
+    // Ticket global scope + TicketPolicy (agents only ever reach tickets assigned to them).
+    // Assigning is admin only, enforced here and again in TicketPolicy::assign.
+    Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
+    Route::get('/tickets/create', [TicketController::class, 'create'])->name('tickets.create');
+    Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
+    Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
+    Route::get('/tickets/{ticket}/edit', [TicketController::class, 'edit'])->name('tickets.edit');
+    Route::put('/tickets/{ticket}', [TicketController::class, 'update'])->name('tickets.update');
+    Route::post('/tickets/{ticket}/assign', [TicketController::class, 'assign'])
+        ->middleware('role:admin')->name('tickets.assign');
+
+    Route::post('/notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');
 });

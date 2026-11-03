@@ -8,6 +8,7 @@
             <span class="tag {{ $contact->is_active ? '' : 'off' }}">{{ $contact->is_active ? 'Active' : 'Inactive' }}</span>
             @if($contact->is_primary)<span class="tag">Primary</span>@endif</h2>
         <span>
+            <a class="btn" href="{{ route('tickets.create', ['contact_id' => $contact->contact_id]) }}">+ New ticket</a>
             @if(auth()->user()->isAdmin())
                 <a class="btn light" href="{{ route('contacts.edit', $contact) }}">Edit</a>
                 <form method="POST" action="{{ route('contacts.active', $contact) }}" style="display:inline">

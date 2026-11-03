@@ -7,8 +7,8 @@ Internal support desk: a software company tracks its 10 client companies, the cl
 ## Status
 - Milestone 1 (login, roles): done.
 - Milestone 2 (companies and contacts) and admin-only agent creation: done.
-- Next: Milestone 3 (tickets, agent-only visibility, assignment history, admin-only assign). Then interactions
-  and templates, dashboard, deploy.
+- Milestone 3 (tickets, agent-only visibility, assignment history, admin-only assign, assignment alerts): done.
+- Next: Milestone 4 (interactions and templates), then dashboard (unassigned queue, workload), deploy.
 
 ## Stack and conventions
 - Laravel 13, PHP 8.3+, plain Blade views (no Filament, no starter kit, no JS build step needed), MariaDB 10.4.
@@ -21,7 +21,13 @@ Internal support desk: a software company tracks its 10 client companies, the cl
 - There is NO public registration. Only admins create agents (`Admin\UserController`); role is forced to `agent`
   server-side. Do not add a `/register` route.
 - Access control: `role:admin` / `role:agent` middleware plus `active` (logs out deactivated users). Agents can view
-  every company and contact; agents will see only their own tickets (milestone 3, via global scope + policy).
+  every company and contact, but only their own tickets (see Tickets below).
+- Tickets: agent-only visibility lives in ONE place, the `Ticket` global scope (`agent_visibility`), backed by
+  `TicketPolicy`. Agents therefore get a 404 (not 403) for tickets that are not theirs, including unassigned ones. Admins
+  are unfiltered. Use `Ticket::withoutGlobalScopes()` only for admin/system code, never for agent requests. Only admins
+  assign or reassign (`POST /tickets/{id}/assign`, `TicketPolicy::assign`); every assignment writes a
+  `ticket_assignments` row and sends the in-app `TicketAssigned` notification. A ticket's company always comes from
+  its contact. Agent-created tickets are auto-assigned to the agent. Tickets are never deleted.
 - Keep authorization in middleware/policies, not scattered in views. Hiding a button is not security.
 - Use the Write/Edit tools to create files; very large inline bash heredocs have failed in this environment.
 
