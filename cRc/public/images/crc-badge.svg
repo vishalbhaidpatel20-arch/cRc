@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="cRc">
+  <title>cRc</title>
+  <rect width="120" height="120" rx="28.5" fill="#534AB7"/>
+  <g transform="translate(16.4 37) scale(0.5)">
+    <g fill="none" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M38.9 53.9 A22 22 0 1 0 38.9 82.1"/>
+      <path d="M72 0 V90 M72 0 H94 A22 22 0 0 1 94 44 H72 M86 44 L112 90"/>
+      <path d="M172.9 53.9 A22 22 0 1 0 172.9 82.1"/>
+    </g>
+    <circle cx="134" cy="-4" r="8" fill="#FFB84D"/>
+  </g>
+</svg>

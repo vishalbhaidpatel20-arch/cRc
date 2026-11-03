@@ -36,7 +36,7 @@
         @endforeach
         @error('companies')<div class="error">{{ $message }}</div>@enderror
 
-        <button type="submit" style="margin-top:1rem;padding:.6rem 1.2rem;background:#1f3a5f;color:#fff;border:0;border-radius:6px;cursor:pointer">Create agent</button>
+        <button type="submit" style="margin-top:1rem;padding:.6rem 1.2rem;background:#1F1A5C;color:#fff;border:0;border-radius:6px;cursor:pointer">Create agent</button>
         <a href="{{ route('admin.users.index') }}" style="margin-left:1rem">Cancel</a>
     </form>
 </div>
