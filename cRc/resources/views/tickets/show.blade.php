@@ -61,5 +61,19 @@
             <tr><td colspan="5" class="muted">Never assigned.</td></tr>
         @endforelse
     </table>
+
+    @include('partials.conversation-panel', [
+        'action' => route('tickets.interactions.store', $ticket),
+        'anchorUrl' => route('tickets.show', $ticket).'#log-conversation',
+        'contactChoices' => $panelContacts,
+        'defaultContactId' => $ticket->contact_id,
+        'defaultTopic' => $ticket->topic,
+    ])
+
+    <div class="hist-head" id="conversations">
+        <h3>Conversation history</h3>
+        <span class="muted">{{ $interactions->count() }} {{ \Illuminate\Support\Str::plural('conversation', $interactions->count()) }}</span>
+    </div>
+    @include('partials.conversation-list', ['interactions' => $interactions, 'showContact' => true])
 </div>
 @endsection

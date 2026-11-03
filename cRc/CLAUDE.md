@@ -8,7 +8,8 @@ Internal support desk: a software company tracks its 10 client companies, the cl
 - Milestone 1 (login, roles): done.
 - Milestone 2 (companies and contacts) and admin-only agent creation: done.
 - Milestone 3 (tickets, agent-only visibility, assignment history, admin-only assign, assignment alerts): done.
-- Next: Milestone 4 (interactions and templates), then dashboard (unassigned queue, workload), deploy.
+- Milestone 4 (conversation log and message templates): done.
+- Next: Milestone 5 (admin dashboard: unassigned queue, workload per agent), then deploy.
 
 ## Stack and conventions
 - Laravel 13, PHP 8.3+, plain Blade views (no Filament, no starter kit, no JS build step needed), MariaDB 10.4.
@@ -28,6 +29,21 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   assign or reassign (`POST /tickets/{id}/assign`, `TicketPolicy::assign`); every assignment writes a
   `ticket_assignments` row and sends the in-app `TicketAssigned` notification. A ticket's company always comes from
   its contact. Agent-created tickets are auto-assigned to the agent. Tickets are never deleted.
+- Conversations (`interactions`): append-only log, no edit/delete routes. Any agent can log with any active contact and
+  read the whole log (project scope: conversations are open to all agents). Linking a conversation to a ticket must go
+  through the `Ticket` model so the visibility scope applies (never `Rule::exists('tickets')`, which bypasses it). The
+  author (`user_id`) always comes from the session. The DB trigger keeps `contacts.last_contacted_at` current.
+- Contact page (`contacts/show`): two columns (details, module tags, "Prefers" on the left; log form above the
+  history on the right). The log form can save a "Follow up on" date, which creates a pending `follow_ups` row for the
+  author; the agent dashboard lists follow-ups due today or overdue with "Mark done" (owner or admin only). Product
+  modules (`product_modules`) are managed by admins under `/admin/modules` and ticked per contact in the contact form;
+  the contact's best time to reach is stored in `contact_profiles.preferred_time`. The template picker fills the
+  message box with a few lines of JavaScript (all templates are rendered server-side into `data-` attributes; a
+  `<noscript>` form falls back to `?template=ID`). Channel display names come from `Interaction::channelLabel()`.
+- Message templates: admins manage, agents only use active ones. Placeholders are a fixed whitelist
+  (`MessageTemplate::PLACEHOLDERS`: name, company, ticket_no, ticket_title, agent_name), filled by `TemplateRenderer`
+  with plain text substitution (nothing evaluated). Nothing is sent. In Blade never write a literal double-brace pair
+  inside an echo: use `MessageTemplate::token('name')`.
 - Keep authorization in middleware/policies, not scattered in views. Hiding a button is not security.
 - Use the Write/Edit tools to create files; very large inline bash heredocs have failed in this environment.
 

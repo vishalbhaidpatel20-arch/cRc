@@ -1,8 +1,12 @@
 <?php
 
+use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\FollowUpController;
 use App\Http\Controllers\Agent\DashboardController as AgentDashboardController;
+use App\Http\Controllers\InteractionController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\TicketController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CompanyController;
@@ -52,6 +56,11 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
+
+        // Product modules (names are entered by the admin, never hard-coded).
+        Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
+        Route::post('/modules', [ModuleController::class, 'store'])->name('modules.store');
+        Route::put('/modules/{module}', [ModuleController::class, 'update'])->name('modules.update');
     });
 
     Route::middleware('role:agent')->prefix('agent')->name('agent.')->group(function () {
@@ -71,4 +80,21 @@ Route::middleware(['auth', 'active'])->group(function () {
         ->middleware('role:admin')->name('tickets.assign');
 
     Route::post('/notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');
+
+    // Conversation log. Everyone logs and reads; entries are append-only (no edit/delete routes).
+    Route::get('/interactions', [InteractionController::class, 'index'])->name('interactions.index');
+    Route::post('/tickets/{ticket}/interactions', [InteractionController::class, 'storeForTicket'])->name('tickets.interactions.store');
+    Route::post('/contacts/{contact}/interactions', [InteractionController::class, 'storeForContact'])->name('contacts.interactions.store');
+
+    Route::patch('/follow-ups/{followUp}/done', [FollowUpController::class, 'done'])->name('follow-ups.done');
+
+    // Message templates: admins manage (declared first so /templates/create is not a {template}), everyone reads.
+    Route::middleware('role:admin')->group(function () {
+        Route::get('/templates/create', [TemplateController::class, 'create'])->name('templates.create');
+        Route::post('/templates', [TemplateController::class, 'store'])->name('templates.store');
+        Route::get('/templates/{template}/edit', [TemplateController::class, 'edit'])->name('templates.edit');
+        Route::put('/templates/{template}', [TemplateController::class, 'update'])->name('templates.update');
+        Route::patch('/templates/{template}/active', [TemplateController::class, 'toggleActive'])->name('templates.active');
+    });
+    Route::get('/templates', [TemplateController::class, 'index'])->name('templates.index');
 });

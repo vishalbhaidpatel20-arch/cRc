@@ -76,7 +76,7 @@ Only values the tests assert on are listed. Everything else is random from the f
 | Other emails | `x@example.com` (bad logins for the throttle test), `target@example.com`, `victim@example.com` |
 | Company | `Some Co` plus a random company and contact for the URL list |
 | Throttle | 5 bad attempts allowed per minute; the 6th returns 429 |
-| Route list | `protectedRoutes()` now also lists the ticket routes (`/tickets`, `/tickets/create`, `/tickets/1`, `/tickets/1/edit`, `/tickets/1/assign`) and `POST /notifications/read` |
+| Route list | `protectedRoutes()` also lists the ticket routes, `POST /notifications/read`, the conversation and template routes, `/admin/modules` (GET, POST, PUT) and `PATCH /follow-ups/1/done` |
 
 ### TicketAssignmentJourneyTest (milestone 3)
 | Data | Value |
@@ -88,6 +88,17 @@ Only values the tests assert on are listed. Everything else is random from the f
 | Ticket logged | `TPS report totals are wrong`, bug, critical, description `Cover sheet missing` |
 | Assignment reasons | `Anna handles Initech`, then `Anna is out` (reassigned to Ben) |
 | Second test | agent `Solo Agent` logs `How do I export?` for contact `Samir Nagheenanajar`; it is assigned to them |
+
+### ConversationJourneyTest (milestone 4)
+| Data | Value |
+|---|---|
+| Admin / agents | `Boss Admin` (random email), `Anna Agent` (`anna@example.com`), `Ben Agent` (`ben@example.com`), password `password` |
+| Company / contact | `Initech` / `Peter Gibbons` |
+| Tickets | `TPS report totals` (Anna), `Ben secret printer fix` (Ben); both for Peter |
+| Template | `Progress update`, follow_up, email, subject `Update on {{ticket_no}}`, body `Hi {{name}} from {{company}}, {{agent_name}} is working on {{ticket_title}}.` |
+| Bad template | body `Hi {{nmae}}, quick update.` (typo, must be refused) |
+| Conversations | email outbound (the filled template), then `Peter called to ask about the export.` (call inbound, topic query) |
+| Denied | linking Ben's ticket from Anna's contact form; Ben editing or deleting a log entry (404) |
 
 ## 3b. Fixed values used by the earlier (non-E2E) feature tests
 
@@ -153,10 +164,39 @@ These are single-feature tests in `tests/Feature/`. They use the same rules as s
 | Reasons | `Knows this client`, `Alice on leave` |
 | Moving ticket | `Moving ticket` (Alice to Bob); `Alert me please` (assignment alert on Alice's dashboard); `Waiting in queue` vs `Already owned` (assignee filter) |
 
+### InteractionTest (milestone 4, 28 tests)
+| Data | Value |
+|---|---|
+| Users | `Boss Admin`, `Alice Agent`, `Bob Agent` (password `password`) |
+| Log payload | topic `query`, channel `call`, direction `inbound`, summary `Asked how to export the report.` |
+| Invalid values | empty summary, topic `rant`, channel `pigeon`, direction `sideways`, a future date, `not a date`, 5001-character summary |
+| Spoofing | `user_id` of Bob and `contact_id` 99999 posted by Alice are ignored (author = session user) |
+| XSS check | summary `<script>alert(1)</script>` must be shown escaped |
+| Ticket links | `Alice linkable` (Alice's) vs `Bob hidden one` (Bob's); Bob's ticket and a queue ticket must be refused as links for Alice |
+| Log filters | contact `Findable Fiona`; entries `WA bug chat` (alice, whatsapp, bug, 2 days ago) and `Phone query chat` (bob, call, query, 10 days ago) |
+| Mine / visibility | `Mine alice entry`, `Bobs entry here`, `Chat about bob ticket` (shows "another agent's ticket" to Alice) |
+| Templates | `Status update` (subject `Update on {{ticket_no}}`, body `Hi {{name}} from {{company}}, {{agent_name}} here about {{ticket_title}}.`), contact `Carla Client`, ticket `Printer jam`; `Secret inactive body` (inactive, must not render) |
+| Template admin payload | `Fresh`, category bug, email, subject `Hello {{name}}`, body `Dear {{name}}`; renamed to `Renamed`; duplicates `Taken` (email) |
+| Bad placeholders | `{{nickname}}` in body, `{{secret}}` in subject (both refused) |
+| Template list | `Live template` (agents see) vs `Retired template` (inactive, admins only) |
+
+### ContactPageTest (contact page redesign, follow-ups, modules; 26 tests)
+| Data | Value |
+|---|---|
+| Users | `Boss Admin` (random email), `Alice Agent`, `Bob Agent` (password `password`) |
+| Contact | `Rohan Shah`, `Operations manager`, primary, business `Apex Retail Pune`, dept `Operations`, role decision_maker, prefers whatsapp, phone and WhatsApp `9800000210`; profile preferred time `10am to 1pm` |
+| Modules | `Billing`, `Reports` (attached), `Unused` (not attached, must not show); `Module 1`, `Module 2` for the edit/create tests |
+| Initials | `Rohan Shah` gives RS, `madonna` gives M, `  anna   bell   cole ` gives AB, empty gives ? |
+| History | `An earlier chat`; 17 rows for `Busy Bee` (shows "See all 17 conversations"); rows `WA row` (WhatsApp inbound, bug, yesterday 10:45) and `Meeting row` (meeting outbound, customization, 20 days ago) |
+| Template picker | `Hello tpl`, subject `Hi {{name}}`, body `Dear {{name}}, welcome.` for contact `Pat Picker` |
+| Follow-ups | summary `Talked about invoices.`, follow-up tomorrow (pending, assigned to the author); past date and `soon` rejected; a 500-character summary is shortened to 255 or less |
+| Dashboard | `Call Dora back` (due today, shown), `Future one`, `Bobs reminder`, `Already done thing` (all hidden), `Missed call` (3 days overdue, flagged) |
+| Modules admin | `Billing`, `Reports`, renamed to `Invoicing`; duplicate, empty and 101-character names rejected |
+
 ### Unit
 `tests/Unit/ExampleTest.php`: Laravel's default placeholder (1 test, no data).
 
-### Unit tests (models, middleware, factories, database; 87 tests)
+### Unit tests (models, middleware, factories, database, services; 99 tests)
 | Data | Value |
 |---|---|
 | User | password `plain-secret` (must be hashed, never stored plain); `Fill Test` with `user_id=999` (id must be ignored); factory default password `password` |
@@ -204,10 +244,10 @@ then load `database/sql/03_seed.sql`. This deletes any records entered by hand.
 
 ## 6. Test case index
 
-Suite total: **173 tests** = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 1 Unit placeholder + 87 unit tests + 16 E2E.
+Suite total: **240 tests** = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 99 unit tests + 17 E2E.
 Per-test names for the earlier feature tests: `php artisan test tests/Feature --testdox`.
 
-### Unit test classes (87)
+### Unit test classes (99)
 | Class | Tests | Folder |
 |---|---|---|
 | UserTest | 16 | tests/Unit/Models |
@@ -218,10 +258,11 @@ Per-test names for the earlier feature tests: `php artisan test tests/Feature --
 | FactoryTest | 12 | tests/Unit/Factories |
 | InteractionTriggerTest | 4 | tests/Unit/Database |
 | SchemaGuardTest | 13 | tests/Unit/Database |
+| TemplateRendererTest (placeholders: fill, unknown, no evaluation, variables) | 12 | tests/Unit/Services |
 
 Per-test names: `php artisan test tests/Unit --testdox`.
 
-### E2E journeys (16)
+### E2E journeys (17)
 
 | # | Test | File |
 |---|---|---|
@@ -241,8 +282,15 @@ Per-test names: `php artisan test tests/Unit --testdox`.
 | 14 | Logout really ends the session | SecurityJourneyTest |
 | 15 | Admin logs, assigns and reassigns a ticket; the agent sees only theirs; URL guessing is denied; history is kept | TicketAssignmentJourneyTest |
 | 16 | An agent logs a ticket for a client and it is assigned to them | TicketAssignmentJourneyTest |
+| 17 | Admin creates a template; an agent fills it into a conversation on a ticket and a contact; the log stays append-only | ConversationJourneyTest |
 
 ### Milestone 3 feature tests (26)
 `TicketVisibilityTest` (13): agent list and URL isolation, search/filter leak checks, global scope, policy, dashboard counts, queue order, resolved filter, guests.
 `TicketAssignmentTest` (13): create (admin/agent), validation, assign, reassign, history rows, admin-only assign, assign form visibility, unassigned filter, notifications.
 Names: `php artisan test tests/Feature --testdox`.
+
+### Milestone 4 feature tests (28)
+`InteractionTest` (28): log from a ticket and from a contact, last-contacted trigger, ticket-link and contact-company rules, agents cannot link/log against tickets they cannot see, validation, author from session, append-only log, XSS escaping, log filters and visibility, template fill (ticket, contact, whatsapp, inactive, unknown), template admin vs agent, placeholder validation.
+
+### Contact page, follow-ups and modules (26)
+`ContactPageTest` (26): avatar initials, details, "Main contact" tag, module tags, "Prefers" line; log form above history; history count and link to the full log; row labels (WhatsApp, "Yesterday, 10:45"); templates embedded for the picker; read-only for agents; inactive contact hides the form; follow-up date creates a reminder (and its validation); follow-up tags (tomorrow, overdue, done); dashboard "Follow-ups due" and "Mark done" (owner or admin only); admin-only product modules; modules and best time saved from the contact form.

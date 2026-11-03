@@ -14,6 +14,24 @@
     <p><a class="btn" href="{{ route('tickets.index') }}">My tickets</a>
        <a class="btn light" href="{{ route('tickets.create') }}">+ New ticket</a></p>
 
+    <h3>Follow-ups due</h3>
+    @forelse($followUps as $f)
+        <div style="padding:.5rem 0;border-bottom:1px solid #eee;display:flex;justify-content:space-between;gap:1rem;align-items:center">
+            <div>
+                <a href="{{ route('contacts.show', $f->contact) }}">{{ $f->contact->full_name }}</a>
+                <span class="muted">{{ $f->contact->company->name }}</span>
+                @if($f->isOverdue())<span class="pill late">Overdue, was {{ $f->due_date->format('j M') }}</span>@else<span class="pill fu">Due today</span>@endif
+                <div class="muted">{{ $f->description }}</div>
+            </div>
+            <form method="POST" action="{{ route('follow-ups.done', $f) }}">
+                @csrf @method('PATCH')
+                <button class="btn outline" type="submit">Mark done</button>
+            </form>
+        </div>
+    @empty
+        <p class="muted">No follow-ups due.</p>
+    @endforelse
+
     <h3>New assignments</h3>
     @forelse($notifications as $n)
         <div style="padding:.4rem 0;border-bottom:1px solid #eee">

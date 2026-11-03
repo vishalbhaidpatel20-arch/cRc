@@ -4,6 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\ContactProfile;
+use App\Models\ProductModule;
+use App\Models\Interaction;
+use App\Models\Ticket;
+use App\Services\TemplateRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -37,9 +42,19 @@ class ContactController extends Controller
         ]);
     }
 
-    public function show(Contact $contact): View
+    public function show(Request $request, Contact $contact, TemplateRenderer $renderer): View
     {
-        return view('contacts.show', ['contact' => $contact->load('company')]);
+        $contact->load(['company', 'profile', 'modules']);
+
+        return view('contacts.show', $renderer->panelData($request, $contact, null) + [
+            'contact' => $contact,
+            'interactionCount' => Interaction::where('contact_id', $contact->contact_id)->count(),
+            'interactions' => Interaction::with(['user', 'ticket', 'followUp'])->where('contact_id', $contact->contact_id)
+                ->orderByDesc('interaction_at')->orderByDesc('interaction_id')->limit(15)->get(),
+            // Goes through the Ticket global scope: an agent can only link their own tickets.
+            'linkableTickets' => Ticket::open()->where('company_id', $contact->company_id)
+                ->orderBy('tickets.created_at')->get(['ticket_id', 'ticket_no', 'title']),
+        ]);
     }
 
     public function create(Request $request): View
@@ -51,11 +66,12 @@ class ContactController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $data = $this->validated($request);
+        [$data, $moduleIds, $preferredTime] = $this->split($this->validated($request));
 
-        $contact = DB::transaction(function () use ($data) {
+        $contact = DB::transaction(function () use ($data, $moduleIds, $preferredTime) {
             $contact = Contact::create($data + ['is_active' => true]);
             $this->enforceSinglePrimary($contact);
+            $this->saveExtras($contact, $moduleIds, $preferredTime);
 
             return $contact;
         });
@@ -65,16 +81,19 @@ class ContactController extends Controller
 
     public function edit(Contact $contact): View
     {
+        $contact->load(['profile', 'modules']);
+
         return view('contacts.form', ['contact' => $contact] + $this->formData($contact));
     }
 
     public function update(Request $request, Contact $contact): RedirectResponse
     {
-        $data = $this->validated($request, $contact);
+        [$data, $moduleIds, $preferredTime] = $this->split($this->validated($request, $contact));
 
-        DB::transaction(function () use ($contact, $data) {
+        DB::transaction(function () use ($contact, $data, $moduleIds, $preferredTime) {
             $contact->update($data);
             $this->enforceSinglePrimary($contact);
+            $this->saveExtras($contact, $moduleIds, $preferredTime);
         });
 
         return redirect()->route('contacts.show', $contact)->with('status', 'Contact updated.');
@@ -85,6 +104,27 @@ class ContactController extends Controller
         $contact->update(['is_active' => ! $contact->is_active]);
 
         return back()->with('status', $contact->is_active ? 'Contact activated.' : 'Contact deactivated.');
+    }
+
+    /** Separates the contact columns from the modules and the profile's preferred time. */
+    private function split(array $data): array
+    {
+        $modules = array_map('intval', $data['modules'] ?? []);
+        $time = $data['preferred_time'] ?? null;
+        unset($data['modules'], $data['preferred_time']);
+
+        return [$data, $modules, $time];
+    }
+
+    private function saveExtras(Contact $contact, array $moduleIds, ?string $preferredTime): void
+    {
+        $contact->modules()->sync($moduleIds);
+
+        if ($preferredTime !== null && $preferredTime !== '') {
+            ContactProfile::updateOrCreate(['contact_id' => $contact->contact_id], ['preferred_time' => $preferredTime]);
+        } else {
+            ContactProfile::where('contact_id', $contact->contact_id)->update(['preferred_time' => null]);
+        }
     }
 
     /** A company has at most one primary contact: marking one clears the others. */
@@ -104,6 +144,7 @@ class ContactController extends Controller
             'companies' => Company::where('is_active', 1)
                 ->orWhere('company_id', $contact->company_id)
                 ->orderBy('name')->get(['company_id', 'name']),
+            'allModules' => ProductModule::orderBy('name')->get(['module_id', 'name']),
         ];
     }
 
@@ -121,6 +162,9 @@ class ContactController extends Controller
             'business_name' => ['nullable', 'string', 'max:150'],
             'product_role' => ['required', Rule::in(Contact::PRODUCT_ROLES)],
             'preferred_channel' => ['required', Rule::in(Contact::CHANNELS)],
+            'preferred_time' => ['nullable', 'string', 'max:40'],
+            'modules' => ['nullable', 'array'],
+            'modules.*' => ['integer', Rule::exists('product_modules', 'module_id')],
         ]);
 
         $data['is_primary'] = $request->boolean('is_primary');

@@ -56,6 +56,22 @@
             @endforeach
         </select>
 
+        <label>Best time to reach</label>
+        <input name="preferred_time" value="{{ old('preferred_time', $contact->profile?->preferred_time) }}" placeholder="e.g. 10am to 1pm">
+
+        <label>Uses these modules</label>
+        @php($chosenModules = old('modules', $contact->exists ? $contact->modules->pluck('module_id')->all() : []))
+        <div style="margin:.3rem 0 .8rem">
+            @forelse($allModules as $m)
+                <label style="display:inline-flex;align-items:center;gap:.3rem;margin-right:1rem;font-weight:400">
+                    <input type="checkbox" name="modules[]" value="{{ $m->module_id }}" style="width:auto;margin:0" @checked(in_array($m->module_id, $chosenModules))> {{ $m->name }}
+                </label>
+            @empty
+                <span class="muted">No modules yet. An admin can add them under Modules.</span>
+            @endforelse
+        </div>
+        @error('modules.*')<div class="error">{{ $message }}</div>@enderror
+
         <label style="display:block;margin-bottom:1rem">
             <input type="checkbox" name="is_primary" value="1" style="width:auto;margin:0 .4rem 0 0"
                 @checked(old('is_primary', $contact->is_primary))> Primary contact for this company

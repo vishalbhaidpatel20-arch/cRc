@@ -6,6 +6,8 @@ use Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Contact extends Model
 {
@@ -38,6 +40,25 @@ class Contact extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class, 'company_id', 'company_id');
+    }
+
+    public function profile(): HasOne
+    {
+        return $this->hasOne(ContactProfile::class, 'contact_id', 'contact_id');
+    }
+
+    public function modules(): BelongsToMany
+    {
+        return $this->belongsToMany(ProductModule::class, 'contact_modules', 'contact_id', 'module_id')->orderBy('product_modules.name');
+    }
+
+    /** Two-letter avatar text, e.g. "Rohan Shah" gives "RS". */
+    public function initials(): string
+    {
+        $parts = preg_split('/\s+/', trim($this->full_name)) ?: [];
+        $letters = array_map(fn ($p) => mb_strtoupper(mb_substr($p, 0, 1)), array_filter($parts));
+
+        return implode('', array_slice($letters, 0, 2)) ?: '?';
     }
 
     /** Free-text search over name, email, phones, position and company name. */

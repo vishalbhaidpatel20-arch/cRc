@@ -39,6 +39,41 @@
         .tag.medium{background:#e7f0ff;color:#1d4e9e}
         .tag.low{background:#e4e7eb;color:#52606d}
         .overdue{color:#b42318;font-weight:600}
+
+        /* Contact page / conversation log */
+        .contact-grid{display:grid;grid-template-columns:300px minmax(0,1fr);gap:1.5rem;align-items:start}
+        @media (max-width:800px){.contact-grid{grid-template-columns:1fr}}
+        .avatar{flex:0 0 56px;width:56px;height:56px;border-radius:50%;background:#cfe3ff;color:#1e4f9c;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:1.05rem}
+        .kv{display:grid;grid-template-columns:88px minmax(0,1fr);gap:.6rem .8rem;font-size:.9rem;margin:1rem 0}
+        .kv dt{color:#7b8794}
+        .kv dd{margin:0;overflow-wrap:anywhere}
+        hr.soft{border:0;border-top:1px solid #e5e5ea;margin:1rem 0}
+        .pill{display:inline-block;font-size:.78rem;line-height:1.5;padding:.1rem .65rem;border-radius:999px;background:#e4e7eb;color:#52606d}
+        .pill.green{background:#cdeede;color:#0b5b3a}
+        .pill.teal{background:#c8ece4;color:#0b5b50;font-size:.85rem;padding:.15rem .75rem}
+        .pill.bug,.pill.late{background:#fbd6d6;color:#a11a1a}
+        .pill.customization{background:#e1dcff;color:#4a3fb0}
+        .pill.query{background:#dbe8ff;color:#1d4e9e}
+        .pill.follow_up,.pill.fu{background:#fbe3b0;color:#7a5200}
+        .pill.done{background:#e4e7eb;color:#52606d}
+        .btn.outline{background:#fff;color:#1f2933;border:1px solid #cbd2d9}
+        .btn.block{display:block;width:100%;text-align:center}
+        .log-panel{border:1px solid #e5e5ea;border-radius:12px;padding:1rem 1.1rem}
+        .log-panel h3{margin:0 0 .8rem;font-size:1rem}
+        .log-panel select,.log-panel input,.log-panel textarea{width:100%;padding:.6rem .7rem;border:1px solid #d5d8dd;border-radius:8px;background:#fff;font:inherit;font-size:.92rem}
+        .log-panel textarea{resize:vertical;min-height:84px}
+        .log-panel label{font-size:.8rem;color:#7b8794;display:block;margin:.6rem 0 .25rem}
+        .row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem}
+        @media (max-width:560px){.row3{grid-template-columns:1fr}}
+        .log-foot{display:flex;justify-content:space-between;align-items:center;gap:.8rem;margin-top:.7rem;flex-wrap:wrap}
+        .log-foot .fu{display:flex;align-items:center;gap:.5rem;background:none;padding:0;font-size:.9rem;color:#52606d}
+        .log-foot input[type=date]{width:auto}
+        .hist-head{display:flex;justify-content:space-between;align-items:baseline;border-bottom:1px solid #e5e5ea;padding-bottom:.45rem;margin-top:1.4rem}
+        .hist-head h3{margin:0;font-size:1rem}
+        .hist-item{display:flex;gap:.8rem;padding:.85rem 0;border-bottom:1px solid #eee}
+        .hist-icon{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:#f1f3f5;display:flex;align-items:center;justify-content:center;color:#3e4c59}
+        .hist-top{display:flex;justify-content:space-between;gap:1rem}
+        .hist-tags{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-top:.4rem}
     </style>
 </head>
 <body>
@@ -49,10 +84,12 @@
                 <img class="logo" src="{{ asset('images/crc-badge.svg') }}" alt="cRc, Customer Relationship Console" title="cRc, Customer Relationship Console">
             </a>
             <a href="{{ route(auth()->user()->homeRoute()) }}">Dashboard</a>
-            <a href="{{ route('tickets.index') }}">{{ auth()->user()->isAdmin() ? 'Tickets' : 'My tickets' }}</a>
             <a href="{{ route('companies.index') }}">Companies</a>
             <a href="{{ route('contacts.index') }}">Contacts</a>
-            @if(auth()->user()->isAdmin())<a href="{{ route('admin.users.index') }}">Users</a>@endif
+            <a href="{{ route('interactions.index') }}">Conversations</a>
+            @if(auth()->user()->isAdmin())
+                <a href="{{ route('admin.users.index') }}">Users</a>
+            @endif
         </nav>
         <form method="POST" action="{{ route('logout') }}" class="who">
             @csrf

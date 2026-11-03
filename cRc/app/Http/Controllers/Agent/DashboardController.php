@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Agent;
 
 use App\Http\Controllers\Controller;
+use App\Models\FollowUp;
 use App\Models\Ticket;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -17,6 +18,12 @@ class DashboardController extends Controller
             'byPriority' => Ticket::open()->selectRaw('priority, count(*) as total')->groupBy('priority')->pluck('total', 'priority'),
             'topTickets' => Ticket::open()->with(['company', 'contact'])->byPriority()->orderBy('tickets.created_at')->limit(5)->get(),
             'notifications' => $request->user()->unreadNotifications()->latest()->limit(10)->get(),
+            // Pending follow-ups that are due today or overdue, for this agent only.
+            'followUps' => FollowUp::with('contact.company')
+                ->where('assigned_to', $request->user()->user_id)
+                ->where('status', 'pending')
+                ->whereDate('due_date', '<=', today())
+                ->orderBy('due_date')->get(),
         ]);
     }
 }

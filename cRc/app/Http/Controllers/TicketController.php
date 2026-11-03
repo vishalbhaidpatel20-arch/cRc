@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Interaction;
 use App\Models\Ticket;
 use App\Models\TicketAssignment;
 use App\Models\User;
 use App\Notifications\TicketAssigned;
+use App\Services\TemplateRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -53,13 +55,17 @@ class TicketController extends Controller
         ]);
     }
 
-    public function show(Ticket $ticket): View
+    public function show(Request $request, Ticket $ticket, TemplateRenderer $renderer): View
     {
         Gate::authorize('view', $ticket);
 
-        $ticket->load(['company', 'contact', 'assignee']);
+        $ticket->load(['company', 'contact.company', 'assignee']);
 
-        return view('tickets.show', [
+        return view('tickets.show', $renderer->panelData($request, $ticket->contact, $ticket) + [
+            'interactions' => Interaction::with(['contact', 'user'])->where('ticket_id', $ticket->ticket_id)
+                ->orderBy('interaction_at')->orderBy('interaction_id')->get(),
+            'panelContacts' => Contact::where('company_id', $ticket->company_id)->where('is_active', 1)
+                ->orderBy('full_name')->get(['contact_id', 'full_name']),
             'ticket' => $ticket,
             'history' => $ticket->assignments()->with(['fromUser', 'toUser', 'assignedBy'])
                 ->orderBy('assigned_at')->orderBy('assignment_id')->get(),

@@ -50,7 +50,7 @@ class ClientDataEntryJourneyTest extends TestCase
         $this->submit('POST', route('contacts.store'), $this->contactData($company, [
             'full_name' => 'Alice Anderson', 'email' => 'alice@globex.example',
             'phone' => '9811100001', 'position' => 'Buyer', 'is_primary' => '1',
-        ]))->assertOk()->assertSee('Contact created.')->assertSee('Alice Anderson')->assertSee('Primary');
+        ]))->assertOk()->assertSee('Contact created.')->assertSee('Alice Anderson')->assertSee('Main contact');
         $alice = Contact::where('email', 'alice@globex.example')->firstOrFail();
         $this->assertTrue($alice->is_primary);
 
