@@ -40,9 +40,11 @@ class TemplateController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        MessageTemplate::create($this->validated($request) + ['is_active' => true]);
+        $template = MessageTemplate::create($this->validated($request) + ['is_active' => true]);
 
-        return redirect()->route('templates.index')->with('status', 'Template created.');
+        return redirect()->route('templates.index')
+            ->with('status', "Template {$template->name} created.")
+            ->with('highlight', $template->template_id);
     }
 
     public function edit(MessageTemplate $template): View
@@ -54,7 +56,9 @@ class TemplateController extends Controller
     {
         $template->update($this->validated($request, $template));
 
-        return redirect()->route('templates.index')->with('status', 'Template updated.');
+        return redirect()->route('templates.index')
+            ->with('status', 'Template updated.')
+            ->with('highlight', $template->template_id);
     }
 
     public function toggleActive(MessageTemplate $template): RedirectResponse

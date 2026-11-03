@@ -41,8 +41,10 @@ class ClientDataEntryJourneyTest extends TestCase
         $company = Company::where('name', 'Globex Pvt Ltd')->firstOrFail();
         $code = sprintf('CMP%03d', $company->company_id);
         $this->assertSame($code, $company->company_code);
-        $resp->assertOk()->assertSee('Company created.')->assertSee($code)
-            ->assertSee('Globex Pvt Ltd')->assertSee('No contacts yet.')->assertSee('+ Add contact');
+        // The pop-up form sends you back to the list, where the new company is highlighted.
+        $resp->assertOk()->assertSee("Company Globex Pvt Ltd created ({$code})")->assertSee($code)
+            ->assertSee('Globex Pvt Ltd')->assertSee('class="row-new"', false)->assertSee('+ New company');
+        $this->browse(route('companies.show', $company))->assertSee('No contacts yet.')->assertSee('+ Add contact');
 
         // 2. Add the first contact via the company's "Add contact" link (company preselected).
         $this->browse(route('contacts.create', ['company_id' => $company->company_id]))
@@ -50,7 +52,7 @@ class ClientDataEntryJourneyTest extends TestCase
         $this->submit('POST', route('contacts.store'), $this->contactData($company, [
             'full_name' => 'Alice Anderson', 'email' => 'alice@globex.example',
             'phone' => '9811100001', 'position' => 'Buyer', 'is_primary' => '1',
-        ]))->assertOk()->assertSee('Contact created.')->assertSee('Alice Anderson')->assertSee('Main contact');
+        ]))->assertOk()->assertSee('Contact Alice Anderson created.')->assertSee('Alice Anderson')->assertSee('class="row-new"', false);
         $alice = Contact::where('email', 'alice@globex.example')->firstOrFail();
         $this->assertTrue($alice->is_primary);
 
@@ -58,7 +60,7 @@ class ClientDataEntryJourneyTest extends TestCase
         $this->submit('POST', route('contacts.store'), $this->contactData($company, [
             'full_name' => 'Bob Brown', 'email' => 'bob@globex.example',
             'phone' => '9822200002', 'position' => 'Manager', 'is_primary' => '1',
-        ]))->assertOk()->assertSee('Contact created.');
+        ]))->assertOk()->assertSee('Contact Bob Brown created.');
         $bob = Contact::where('email', 'bob@globex.example')->firstOrFail();
         $this->assertTrue($bob->is_primary);
         $this->assertFalse($alice->fresh()->is_primary);

@@ -1,11 +1,13 @@
 @extends('layouts.app')
 @section('title', 'Contacts')
+@php($isAdmin = auth()->user()->isAdmin())
+@php($highlight = session('highlight'))
 
 @section('content')
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">Contacts</h2>
-        @if(auth()->user()->isAdmin())<a class="btn" href="{{ route('contacts.create') }}">+ New contact</a>@endif
+        @if($isAdmin)<a class="btn" id="new-contact-link" data-modal="contact-modal" href="{{ route('contacts.create') }}">+ New contact</a>@endif
     </div>
     @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
 
@@ -28,8 +30,8 @@
     <table class="list">
         <tr><th>Name</th><th>Company</th><th>Position</th><th>Phone</th><th>Email</th><th>Last contacted</th><th>Status</th></tr>
         @forelse($contacts as $ct)
-            <tr>
-                <td><a href="{{ route('contacts.show', $ct) }}">{{ $ct->full_name }}</a> @if($ct->is_primary)<span class="tag">Primary</span>@endif</td>
+            <tr @class(['row-new' => $highlight === $ct->contact_id]) id="contact-{{ $ct->contact_id }}">
+                <td><a href="{{ route('contacts.show', $ct) }}">{{ $ct->full_name }}</a> @if($ct->is_primary)<span class="tag">Primary</span>@endif @if($highlight === $ct->contact_id)<span class="pill green">New</span>@endif</td>
                 <td><a href="{{ route('companies.show', $ct->company) }}">{{ $ct->company->name }}</a></td>
                 <td>{{ $ct->position }}</td>
                 <td>{{ $ct->phone }}</td>
@@ -43,4 +45,11 @@
     </table>
     <div style="margin-top:1rem">{{ $contacts->links('partials.pager') }}</div>
 </div>
+
+@if($isAdmin)
+    <x-modal id="contact-modal" marker="contact" title="New contact" :action="route('contacts.store')" submit="Create contact" wide
+             :open="request()->boolean('new')">
+        @include('contacts._fields', ['contact' => $newContact, 'companies' => $formCompanies])
+    </x-modal>
+@endif
 @endsection

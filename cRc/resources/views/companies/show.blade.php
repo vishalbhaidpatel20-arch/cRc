@@ -8,7 +8,7 @@
             <span class="tag {{ $company->is_active ? '' : 'off' }}">{{ $company->is_active ? 'Active' : 'Inactive' }}</span></h2>
         <span>
             @if(auth()->user()->isAdmin())
-                <a class="btn light" href="{{ route('companies.edit', $company) }}">Edit</a>
+                <a class="btn light" id="edit-company-link" data-modal="company-edit-modal" href="{{ route('companies.edit', $company) }}">Edit</a>
                 <form method="POST" action="{{ route('companies.active', $company) }}" style="display:inline">
                     @csrf @method('PATCH')
                     <button class="btn light" type="submit">{{ $company->is_active ? 'Deactivate' : 'Activate' }}</button>
@@ -23,7 +23,7 @@
 
     <div style="display:flex;justify-content:space-between;align-items:center;margin-top:1.5rem">
         <h3 style="margin:0">Contacts</h3>
-        @if(auth()->user()->isAdmin())<a class="btn" href="{{ route('contacts.create', ['company_id' => $company->company_id]) }}">+ Add contact</a>@endif
+        @if(auth()->user()->isAdmin())<a class="btn" href="{{ route('contacts.index', ['new' => 1, 'company_id' => $company->company_id]) }}">+ Add contact</a>@endif
     </div>
     <table class="list">
         <tr><th>Name</th><th>Position</th><th>Phone</th><th>Email</th><th>Status</th></tr>
@@ -40,4 +40,11 @@
         @endforelse
     </table>
 </div>
+
+@if(auth()->user()->isAdmin())
+    <x-modal id="company-edit-modal" marker="company-edit" title="Edit company" :action="route('companies.update', $company)" method="PUT" submit="Save changes"
+             :note="'Code: '.$company->company_code">
+        @include('companies._fields')
+    </x-modal>
+@endif
 @endsection

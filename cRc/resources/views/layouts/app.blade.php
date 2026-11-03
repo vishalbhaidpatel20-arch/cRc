@@ -73,6 +73,22 @@
         .hist-item{display:flex;gap:.8rem;padding:.85rem 0;border-bottom:1px solid #eee}
         .hist-icon{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:#f1f3f5;display:flex;align-items:center;justify-content:center;color:#3e4c59}
         .hist-top{display:flex;justify-content:space-between;gap:1rem}
+        /* Pop-up dialogs */
+        dialog.modal{border:0;border-radius:14px;padding:1.3rem 1.4rem;width:min(520px,92vw);max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px #0004;color:inherit}
+        dialog.modal.wide{width:min(640px,94vw)}
+        dialog.modal::backdrop{background:#1f1a5c66}
+        .modal-head{display:flex;justify-content:space-between;align-items:center}
+        .modal-x{background:none;border:0;font-size:1.6rem;line-height:1;cursor:pointer;color:#7b8794;padding:0 .3rem}
+        .modal-foot{display:flex;justify-content:flex-end;gap:.6rem;margin-top:.6rem}
+        tr.row-new td{background:#f0fbf4}
+        .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.8rem}
+        .stat{display:flex;flex-direction:column;gap:.15rem;background:#fff;border:1px solid #e5e5ea;border-radius:12px;padding:.9rem 1rem;text-decoration:none;color:inherit}
+        a.stat:hover{border-color:#5B4BDB}
+        .stat-n{font-size:1.7rem;font-weight:600;line-height:1.1}
+        .stat.warn .stat-n{color:#9a5b00}
+        .stat.bad .stat-n{color:#b42318}
+        .bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#eef0f3;min-width:14px}
+        .bar span{display:block;min-width:4px}
         .hist-tags{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-top:.4rem}
     </style>
 </head>

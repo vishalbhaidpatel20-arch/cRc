@@ -12,7 +12,7 @@
         @endforeach
     </p>
     <p><a class="btn" href="{{ route('tickets.index') }}">My tickets</a>
-       <a class="btn light" href="{{ route('tickets.create') }}">+ New ticket</a></p>
+       <a class="btn light" href="{{ route('tickets.index', ['new' => 1]) }}">+ New ticket</a></p>
 
     <h3>Follow-ups due</h3>
     @forelse($followUps as $f)

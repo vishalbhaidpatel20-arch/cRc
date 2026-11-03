@@ -40,13 +40,13 @@
             </div>
 
             @if($isAdmin)
-                <a class="btn outline block" href="{{ route('contacts.edit', $contact) }}">Edit contact</a>
+                <a class="btn outline block" id="edit-contact-link" data-modal="contact-edit-modal" href="{{ route('contacts.edit', $contact) }}">Edit contact</a>
                 <form method="POST" action="{{ route('contacts.active', $contact) }}" style="margin-top:.5rem">
                     @csrf @method('PATCH')
                     <button class="btn outline block" type="submit">{{ $contact->is_active ? 'Deactivate' : 'Activate' }}</button>
                 </form>
             @endif
-            <a class="btn outline block" style="margin-top:.5rem" href="{{ route('tickets.create', ['contact_id' => $contact->contact_id]) }}">+ New ticket</a>
+            <a class="btn outline block" style="margin-top:.5rem" href="{{ route('tickets.index', ['new' => 1, 'contact_id' => $contact->contact_id]) }}">+ New ticket</a>
         </aside>
 
         <section>
@@ -69,4 +69,10 @@
         </section>
     </div>
 </div>
+
+@if($isAdmin)
+    <x-modal id="contact-edit-modal" marker="contact-edit" title="Edit contact" :action="route('contacts.update', $contact)" method="PUT" submit="Save changes" wide>
+        @include('contacts._fields')
+    </x-modal>
+@endif
 @endsection

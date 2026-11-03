@@ -1,11 +1,14 @@
 @extends('layouts.app')
 @section('title', 'Companies')
+@php($isAdmin = auth()->user()->isAdmin())
+@php($highlight = session('highlight'))
 
 @section('content')
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">Companies</h2>
-        @if(auth()->user()->isAdmin())<a class="btn" href="{{ route('companies.create') }}">+ New company</a>@endif
+        {{-- A plain link (works without JavaScript); the script below turns it into a pop-up. --}}
+        @if($isAdmin)<a class="btn" id="new-company-link" data-modal="company-modal" href="{{ route('companies.create') }}">+ New company</a>@endif
     </div>
     @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
 
@@ -22,9 +25,9 @@
     <table class="list">
         <tr><th>Code</th><th>Name</th><th>Industry</th><th>City</th><th>Contacts</th><th>Status</th></tr>
         @forelse($companies as $c)
-            <tr>
+            <tr @class(['row-new' => $highlight === $c->company_id]) id="company-{{ $c->company_id }}">
                 <td>{{ $c->company_code }}</td>
-                <td><a href="{{ route('companies.show', $c) }}">{{ $c->name }}</a></td>
+                <td><a href="{{ route('companies.show', $c) }}">{{ $c->name }}</a>@if($highlight === $c->company_id) <span class="pill green">New</span>@endif</td>
                 <td>{{ $c->industry }}</td>
                 <td>{{ $c->city }}</td>
                 <td>{{ $c->contacts_count }}</td>
@@ -36,4 +39,11 @@
     </table>
     <div style="margin-top:1rem">{{ $companies->links('partials.pager') }}</div>
 </div>
+
+@if($isAdmin)
+    <x-modal id="company-modal" marker="company" title="New company" :action="route('companies.store')" submit="Create company"
+             note="The company code (CMP001, CMP002...) is generated automatically." :open="request()->boolean('new')">
+        @include('companies._fields', ['company' => new \App\Models\Company])
+    </x-modal>
+@endif
 @endsection

@@ -41,7 +41,7 @@ class ConversationJourneyTest extends TestCase
         $this->submit('POST', route('templates.store'), [
             'name' => 'Progress update', 'category' => 'follow_up', 'channel' => 'email',
             'subject' => 'Update on {{ticket_no}}', 'body' => 'Hi {{name}} from {{company}}, {{agent_name}} is working on {{ticket_title}}.',
-        ], route('templates.create'))->assertOk()->assertSee('Template created.')->assertSee('Progress update');
+        ], route('templates.create'))->assertOk()->assertSee('Template Progress update created.')->assertSee('Progress update');
         $template = MessageTemplate::where('name', 'Progress update')->firstOrFail();
         $this->logout();
 

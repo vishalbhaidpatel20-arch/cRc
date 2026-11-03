@@ -9,7 +9,8 @@ Internal support desk: a software company tracks its 10 client companies, the cl
 - Milestone 2 (companies and contacts) and admin-only agent creation: done.
 - Milestone 3 (tickets, agent-only visibility, assignment history, admin-only assign, assignment alerts): done.
 - Milestone 4 (conversation log and message templates): done.
-- Next: Milestone 5 (admin dashboard: unassigned queue, workload per agent), then deploy.
+- Milestone 5 (admin dashboard: summary cards, unassigned queue with inline assign, workload per agent): done.
+- Next: Milestone 6 (deploy: EC2, backups, queue worker/scheduler).
 
 ## Stack and conventions
 - Laravel 13, PHP 8.3+, plain Blade views (no Filament, no starter kit, no JS build step needed), MariaDB 10.4.
@@ -40,6 +41,22 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   the contact's best time to reach is stored in `contact_profiles.preferred_time`. The template picker fills the
   message box with a few lines of JavaScript (all templates are rendered server-side into `data-` attributes; a
   `<noscript>` form falls back to `?template=ID`). Channel display names come from `Interaction::channelLabel()`.
+- Admin dashboard (`Admin\DashboardController`, `/admin`): admin only. Cards (open, unassigned, critical, overdue,
+  conversations today, follow-ups overdue), the unassigned queue (priority, then oldest) with an inline assign form
+  that posts to `tickets.assign` with `from=dashboard` (the only redirect value honoured), and workload per agent
+  (LEFT JOIN with the status condition in ON so zero-load agents appear; a deactivated agent still holding open
+  tickets is shown and flagged). The navbar has no Tickets/Templates/Modules links: admins reach Templates, Modules
+  and Users from the dashboard quick links. `tickets.index` accepts `overdue=1`.
+- Pop-up forms: every "create" (company, agent, contact, ticket, template) is a native `<dialog>` on the list page
+  via the `<x-modal>` component (`resources/views/components/modal.blade.php`), and "Edit" is a pop-up on the detail
+  page (company, contact, ticket) or per row (templates). The trigger is a normal link to the stand-alone
+  create/edit page (`data-modal="<dialog id>"`), so everything still works without JavaScript. Field markup lives in
+  `_fields.blade.php` partials shared by the pop-up and the stand-alone page. After a successful create the controller
+  redirects to the LIST (page computed so the new row is visible) with `->with('highlight', $id)` and a flash status;
+  lists mark that row `row-new`. A failed submit redirects back and the pop-up reopens because `old('_modal')` equals
+  its marker; pages with several pop-ups must scope old input and errors per pop-up (see `templates/_fields`).
+  `?new=1` (plus `company_id` / `contact_id`) opens the create pop-up pre-filled, which is how other pages link to it.
+  New create/edit forms should follow this pattern, not a separate page plus redirect.
 - Message templates: admins manage, agents only use active ones. Placeholders are a fixed whitelist
   (`MessageTemplate::PLACEHOLDERS`: name, company, ticket_no, ticket_title, agent_name), filled by `TemplateRenderer`
   with plain text substitution (nothing evaluated). Nothing is sent. In Blade never write a literal double-brace pair

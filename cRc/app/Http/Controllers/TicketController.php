@@ -25,6 +25,8 @@ use Illuminate\View\View;
  */
 class TicketController extends Controller
 {
+    private const PER_PAGE = 20;
+
     public function index(Request $request): View
     {
         $user = $request->user();
@@ -39,15 +41,20 @@ class TicketController extends Controller
             ->when(in_array($status, Ticket::STATUSES, true), fn ($q) => $q->where('tickets.status', $status))
             ->when(in_array($priority, Ticket::PRIORITIES, true), fn ($q) => $q->where('tickets.priority', $priority))
             ->when($request->filled('company_id'), fn ($q) => $q->where('tickets.company_id', $request->query('company_id')))
+            ->when($request->boolean('overdue'), fn ($q) => $q->open()->where('tickets.due_at', '<', now()))
             // Assignee filter is an admin tool; for agents the global scope already pins it to themselves.
             ->when($user->isAdmin() && $assigned === 'unassigned', fn ($q) => $q->whereNull('tickets.assigned_to'))
             ->when($user->isAdmin() && ctype_digit((string) $assigned), fn ($q) => $q->where('tickets.assigned_to', (int) $assigned))
             ->byPriority()
             ->orderBy('tickets.created_at')
-            ->paginate(20)
+            ->orderBy('tickets.ticket_id')
+            ->paginate(self::PER_PAGE)
             ->withQueryString();
 
         return view('tickets.index', [
+            // Blank ticket for the "New ticket" pop-up; ?new=1&contact_id=5 pre-selects the contact.
+            'newTicket' => new Ticket(['topic' => 'query', 'priority' => 'medium', 'contact_id' => $request->boolean('new') ? $request->query('contact_id') : null]),
+            'contactsByCompany' => $this->contactsByCompany(),
             'tickets' => $tickets,
             'status' => $status,
             'companies' => Company::orderBy('name')->get(['company_id', 'name']),
@@ -134,7 +141,12 @@ class TicketController extends Controller
             return $ticket;
         });
 
-        return redirect()->route('tickets.show', $ticket)->with('status', "Ticket {$ticket->ticket_no} created.");
+        // Back to the ticket list, on the page where the new ticket sits, highlighted.
+        $page = intdiv($this->ticketsBefore($ticket), self::PER_PAGE) + 1;
+
+        return redirect()->route('tickets.index', $page > 1 ? ['page' => $page] : [])
+            ->with('status', "Ticket {$ticket->ticket_no} created.")
+            ->with('highlight', $ticket->ticket_id);
     }
 
     public function edit(Ticket $ticket): View
@@ -199,8 +211,30 @@ class TicketController extends Controller
             return back()->withErrors(['assigned_to' => "{$newAssignee->full_name} already has this ticket."]);
         }
 
-        return redirect()->route('tickets.show', $ticket)
-            ->with('status', "Ticket assigned to {$newAssignee->full_name}.");
+        // Assigning from the dashboard queue returns to the dashboard (only this one value is honoured).
+        $target = $request->input('from') === 'dashboard' ? route('admin.dashboard') : route('tickets.show', $ticket);
+
+        return redirect($target)->with('status', "{$ticket->ticket_no} assigned to {$newAssignee->full_name}.");
+    }
+
+    /**
+     * How many tickets the default list (open ones, priority first, then oldest, then id) shows before
+     * this one. Uses the Ticket scope, so for an agent it only counts their own tickets.
+     */
+    private function ticketsBefore(Ticket $ticket): int
+    {
+        $rank = ['critical' => 1, 'high' => 2, 'medium' => 3, 'low' => 4][$ticket->priority];
+        $field = "FIELD(tickets.priority, 'critical', 'high', 'medium', 'low')";
+
+        return Ticket::open()->where(function ($q) use ($field, $rank, $ticket) {
+            $q->whereRaw("$field < ?", [$rank])
+                ->orWhere(function ($q) use ($field, $rank, $ticket) {
+                    $q->whereRaw("$field = ?", [$rank])->where(function ($q) use ($ticket) {
+                        $q->where('tickets.created_at', '<', $ticket->created_at)
+                            ->orWhere(fn ($q) => $q->where('tickets.created_at', $ticket->created_at)->where('tickets.ticket_id', '<', $ticket->ticket_id));
+                    });
+                });
+        })->count();
     }
 
     private function recordAssignment(Ticket $ticket, ?int $from, ?int $to, User $by, ?string $reason): void

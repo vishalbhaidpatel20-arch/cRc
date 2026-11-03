@@ -16,6 +16,8 @@ use Illuminate\View\View;
  */
 class CompanyController extends Controller
 {
+    private const PER_PAGE = 20;
+
     public function index(Request $request): View
     {
         $status = $request->query('status', 'active');
@@ -26,7 +28,7 @@ class CompanyController extends Controller
             ->when($status === 'active', fn ($q) => $q->where('is_active', 1))
             ->when($status === 'inactive', fn ($q) => $q->where('is_active', 0))
             ->orderBy('name')
-            ->paginate(20)
+            ->paginate(self::PER_PAGE)
             ->withQueryString();
 
         return view('companies.index', compact('companies', 'status'));
@@ -57,7 +59,14 @@ class CompanyController extends Controller
             return $company;
         });
 
-        return redirect()->route('companies.show', $company)->with('status', 'Company created.');
+        // Back to the list, on the page where the new company sits (list is ordered by name),
+        // with the row highlighted so it is obvious it was added.
+        $before = Company::where('is_active', 1)->where('name', '<', $company->name)->count();
+        $page = intdiv($before, self::PER_PAGE) + 1;
+
+        return redirect()->route('companies.index', $page > 1 ? ['page' => $page] : [])
+            ->with('status', "Company {$company->name} created ({$company->company_code}).")
+            ->with('highlight', $company->company_id);
     }
 
     public function edit(Company $company): View

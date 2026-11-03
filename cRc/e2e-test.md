@@ -100,6 +100,13 @@ Only values the tests assert on are listed. Everything else is random from the f
 | Conversations | email outbound (the filled template), then `Peter called to ask about the export.` (call inbound, topic query) |
 | Denied | linking Ben's ticket from Anna's contact form; Ben editing or deleting a log entry (404) |
 
+### DashboardJourneyTest (milestone 5)
+| Data | Value |
+|---|---|
+| Admin / agents | `Boss Admin` (random email), `Busy Bella` (`bella@example.com`), `Free Fred` (`fred@example.com`), password `password` |
+| Tickets | Bella: `Bella critical one` (critical) plus 3 high; queue: `Queue: payroll is down` (critical, 2 days old), `Queue: change my logo` (low) |
+| Second test | `Waiting in queue` (unassigned), `Late and owned` (due yesterday), `On time and owned` (due in 3 days) |
+
 ## 3b. Fixed values used by the earlier (non-E2E) feature tests
 
 These are single-feature tests in `tests/Feature/`. They use the same rules as section 2
@@ -193,10 +200,34 @@ These are single-feature tests in `tests/Feature/`. They use the same rules as s
 | Dashboard | `Call Dora back` (due today, shown), `Future one`, `Bobs reminder`, `Already done thing` (all hidden), `Missed call` (3 days overdue, flagged) |
 | Modules admin | `Billing`, `Reports`, renamed to `Invoicing`; duplicate, empty and 101-character names rejected |
 
+### AdminDashboardTest (milestone 5, 22 tests)
+| Data | Value |
+|---|---|
+| Users | `Boss Admin` (admin), `Anna Agent`, `Ben Agent`; extras `Zed Agent`, `Amy Agent` (ordering), `Gone Agent` (inactive, holds 2 open tickets), `Empty Gone` (inactive, nothing open) |
+| Cards | open = not resolved (4 in the card test), unassigned 1, critical 2, overdue 1; resolved tickets count nowhere |
+| Queue order | `Q-crit-old` (5 days), `Q-crit-new` (1 day), `Q-high`, `Q-low`; excluded `Q-resolved`, `Q-owned`; cap 10 shown of 13 |
+| Workload | Anna: 1 critical, 2 high, 3 medium, 4 low open (10) plus 5 resolved criticals ignored; Ben: 1 high; 7 unassigned criticals belong to nobody |
+| Order | busiest first, then name: Zed (3), Ben (1), Amy (0), Anna (0) |
+| Overdue | Anna: due 2 hours ago (counts), due tomorrow, no due date, resolved and past due (do not count) |
+| Bar scale | Anna 4 open, Ben 2 open: widths 100% and 50% |
+| Return target | `from=dashboard` goes back to the dashboard; `from=https://evil.example/` is ignored (goes to the ticket) |
+| Agent privacy | `Queue secret title` and `Bens private ticket` must not appear on Anna's dashboard |
+| Follow-ups / conversations | one conversation 5 minutes ago (today), one 3 days ago; follow-ups: pending yesterday (overdue), done yesterday, pending today (not overdue) |
+
+### CompanyModalTest and PopupFormsTest (pop-up forms; 16 + 34 tests)
+| Data | Value |
+|---|---|
+| Company pop-up | `Popup Traders` (Retail, Pune); duplicate `Taken Name`; invalid email `not-an-email`; boundary checks with `Alpha 01..25`, `Zulu Last Company`, `Zzz Twentieth`, `Zzz Twenty First`, `AAA First Company`, `Dormant 01..30` (inactive) |
+| New agent | `Brand New` (`brand.new@example.com`, password `secret-pass-1`); failed submit `Half Done` (`half@example.com`, password `short` vs `different`) |
+| New contact | `Pop Person` (`pop.person@example.com`, module `Module 1`); duplicate email `taken@example.com` with typed name `Typed Name`; page test `Alpha 01..25` plus `Zulu Last`; companies `Pop Company`, `Live Company`, `Dormant Company`, `Preselected Co` |
+| New ticket | `Pop-up ticket`, `Agent pop-up ticket`, `Low and late` (25 criticals first, so page 2), `Newest critical`, `Mine alone`, `No contact chosen` (empty contact), contact `Pickable Person`, `Linked Person` |
+| Templates | `Pop template`, `Alpha tpl` / `Beta tpl` (edit pop-ups; Beta edited to `Edited beta` with bad placeholder `{{nickname}}`), `Typed new one` (bad `{{oops}}`), `Old name` renamed `New name` |
+| Edit pop-ups | company `Edit Me Co` to `Edited Co` (city `Old City` to `New City`); contact `Edit Me` to `Edited Person` (role finance); ticket `Before edit` to `After edit` |
+
 ### Unit
 `tests/Unit/ExampleTest.php`: Laravel's default placeholder (1 test, no data).
 
-### Unit tests (models, middleware, factories, database, services; 99 tests)
+### Unit tests (models, middleware, factories, database, services; 99 tests, plus 128 below)
 | Data | Value |
 |---|---|
 | User | password `plain-secret` (must be hashed, never stored plain); `Fill Test` with `user_id=999` (id must be ignored); factory default password `password` |
@@ -206,6 +237,23 @@ These are single-feature tests in `tests/Feature/`. They use the same rules as s
 | Middleware | roles `admin` / `agent`; inactive user must get `Your account has been deactivated.` and a redirect to `route('login')` |
 | Trigger | interactions at `2026-03-01 10:00:00`, `2026-03-05 09:30:00`, back-dated `2026-02-01 08:00:00` |
 | Schema guards | ticket `TKT-0001`, comment `orphan` (no author, must be rejected by `chk_tc_author`), duplicate email `dup@example.com` |
+
+#### Unit tests added for tickets, policies, follow-ups, interactions, templates and notifications (128 tests)
+| Data | Value |
+|---|---|
+| Fixed clock | `Carbon::setTestNow('2026-06-15 12:00:00')`, reset in `tearDown` |
+| Ticket enums | `TOPICS`, `PRIORITIES`, `STATUSES` compared with the `tickets` enum columns in `information_schema` |
+| Ticket search | `TKT-ZZ9001`, title `Printer on fire`, description with `quokka`, `100% broken` vs `100 broken`, `A_c failure` vs `Abc failure`; padded term `   Printer   ` |
+| Ticket priority order | critical, high, medium, low (created in the order low, critical, medium, high) |
+| Ticket overdue | due `2026-06-15 11:59:59` overdue, `12:00:01` not overdue, resolved with past date not overdue |
+| Visibility scope | two agents, one admin, one unassigned ticket; `actingAs` plus `$this->app['auth']->forgetGuards()` between users |
+| Policy | admin, assigned agent, other agent, unassigned ticket; `assign` is admin only |
+| Follow-up labels | now `2026-06-15`: due `06-15` today, `06-16` tomorrow, `06-14` yesterday, `2026-12-05` gives `on 5 Dec`, `2030-12-05` gives `on 5 Dec 2030` |
+| Interaction labels | `2026-06-15 08:05` gives `Today, 08:05`, `2026-06-14 23:59` gives `Yesterday, 23:59`, `2026-01-18` gives `18 Jan`, `2025-10-18` gives `18 Oct 2025`; channel `whatsapp` gives `WhatsApp` |
+| Initials | `Rohan Shah` RS, `Rohan` R, `Anna Beth Carter` AB, `Ünal Çelik` ÜÇ, empty or blank gives `?` |
+| Modules | `Billing`, `Invoicing`, `Reports` (listed alphabetically); profile birthday `1990-04-17`, language `Gujarati` |
+| Template | placeholders `name`, `company`, `ticket_no`, `ticket_title`, `agent_name`; `token('name')` is `{{name}}` |
+| Notification | ticket `TKT-N0001`, title `Printer on fire`, priority `high`, assigned by `Ada Admin`, reason `Urgent` / `Covering for Bob` / null; channel is `database` only, `read_at` null |
 
 ## 4. Manual-testing data (dev database `crc`)
 
@@ -244,10 +292,10 @@ then load `database/sql/03_seed.sql`. This deletes any records entered by hand.
 
 ## 6. Test case index
 
-Suite total: **240 tests** = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 99 unit tests + 17 E2E.
+Suite total: **442 tests** = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 19 E2E.
 Per-test names for the earlier feature tests: `php artisan test tests/Feature --testdox`.
 
-### Unit test classes (99)
+### Unit test classes (227)
 | Class | Tests | Folder |
 |---|---|---|
 | UserTest | 16 | tests/Unit/Models |
@@ -259,10 +307,20 @@ Per-test names for the earlier feature tests: `php artisan test tests/Feature --
 | InteractionTriggerTest | 4 | tests/Unit/Database |
 | SchemaGuardTest | 13 | tests/Unit/Database |
 | TemplateRendererTest (placeholders: fill, unknown, no evaluation, variables) | 12 | tests/Unit/Services |
+| TicketTest | 32 | tests/Unit/Models |
+| TicketPolicyTest | 10 | tests/Unit/Policies |
+| TicketAssignmentTest | 7 | tests/Unit/Models |
+| FollowUpTest | 17 | tests/Unit/Models |
+| ProductModuleTest | 5 | tests/Unit/Models |
+| ContactProfileTest | 8 | tests/Unit/Models |
+| ContactRelationsTest (Contact::modules, initials) | 13 | tests/Unit/Models |
+| InteractionTest | 21 | tests/Unit/Models |
+| MessageTemplateTest | 10 | tests/Unit/Models |
+| TicketAssignedTest | 5 | tests/Unit/Notifications |
 
 Per-test names: `php artisan test tests/Unit --testdox`.
 
-### E2E journeys (17)
+### E2E journeys (19)
 
 | # | Test | File |
 |---|---|---|
@@ -294,3 +352,11 @@ Names: `php artisan test tests/Feature --testdox`.
 
 ### Contact page, follow-ups and modules (26)
 `ContactPageTest` (26): avatar initials, details, "Main contact" tag, module tags, "Prefers" line; log form above history; history count and link to the full log; row labels (WhatsApp, "Yesterday, 10:45"); templates embedded for the picker; read-only for agents; inactive contact hides the form; follow-up date creates a reminder (and its validation); follow-up tags (tomorrow, overdue, done); dashboard "Follow-ups due" and "Mark done" (owner or admin only); admin-only product modules; modules and best time saved from the contact form.
+| 18 | Admin sees the queue and workload, assigns the critical ticket to the lightest agent from the dashboard, the numbers move, the agent never sees the team dashboard | DashboardJourneyTest |
+| 19 | Dashboard card links lead to the matching ticket lists (unassigned, overdue, per agent) | DashboardJourneyTest |
+
+### Dashboard feature tests (22)
+`AdminDashboardTest` (22): admin-only access, agent dashboard shows no team data, summary cards, conversations today and overdue follow-ups, empty system, queue content/order/cap, assign dropdown with load and without inactive agents, assign from the queue returns to the dashboard, return target cannot be hijacked, per-agent counts by priority, zero-load agents listed, ordering, overdue per agent, deactivated agents holding tickets flagged, admins not listed, bar scaling, links and the overdue filter.
+
+### Pop-up forms (50)
+`CompanyModalTest` (16) and `PopupFormsTest` (34): every "create" opens a pop-up on the list page you are on (companies, agents, contacts, tickets, templates) and an edit pop-up on the detail page (company, contact, ticket) or per row (templates). They check: the dialog and its fields are on the page (admins only, tickets also for agents), a successful save redirects back to the list with the new row highlighted and a flash message, the new row lands on the right page of a paginated list (companies and contacts by name, tickets by priority then age, ignoring resolved and other agents' tickets), a failed submit reopens only the pop-up that was submitted with the typed values and errors, `?new=1&company_id=` / `contact_id=` opens a pre-filled pop-up, no leak between several pop-ups on one page, and the stand-alone create/edit pages still work without JavaScript.

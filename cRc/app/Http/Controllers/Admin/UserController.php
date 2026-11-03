@@ -21,6 +21,7 @@ class UserController extends Controller
     {
         return view('admin.users.index', [
             'users' => User::orderBy('role')->orderBy('full_name')->get(),
+            'companies' => Company::where('is_active', 1)->orderBy('name')->get(),   // for the pop-up
         ]);
     }
 
@@ -43,7 +44,7 @@ class UserController extends Controller
             'companies.*' => ['integer', 'exists:companies,company_id'],
         ]);
 
-        DB::transaction(function () use ($data, $request) {
+        $agent = DB::transaction(function () use ($data, $request) {
             // role is forced to "agent" here: it is never read from the request.
             $agent = User::create([
                 'full_name' => $data['full_name'],
@@ -59,9 +60,13 @@ class UserController extends Controller
             if (! $agent->all_companies) {
                 $agent->companies()->sync($data['companies']);
             }
+
+            return $agent;
         });
 
+        // Back to the list (the pop-up's page) with the new row highlighted.
         return redirect()->route('admin.users.index')
-            ->with('status', "Agent {$data['full_name']} created.");
+            ->with('status', "Agent {$data['full_name']} created.")
+            ->with('highlight', $agent->user_id);
     }
 }

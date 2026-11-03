@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\FollowUpController;
@@ -50,7 +51,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/contacts/{contact}', [ContactController::class, 'show'])->name('contacts.show');
 
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
-        Route::view('/', 'admin.dashboard')->name('dashboard');
+        Route::get('/', AdminDashboardController::class)->name('dashboard');
 
         // Only admins can create agent accounts. There is no public /register route.
         Route::get('/users', [UserController::class, 'index'])->name('users.index');

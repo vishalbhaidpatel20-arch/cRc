@@ -1,12 +1,13 @@
 @extends('layouts.app')
 @php($isAdmin = auth()->user()->isAdmin())
+@php($highlight = session('highlight'))
 @section('title', $isAdmin ? 'Tickets' : 'My tickets')
 
 @section('content')
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">{{ $isAdmin ? 'Tickets' : 'My tickets' }}</h2>
-        <a class="btn" href="{{ route('tickets.create') }}">+ New ticket</a>
+        <a class="btn" id="new-ticket-link" data-modal="ticket-modal" href="{{ route('tickets.create') }}">+ New ticket</a>
     </div>
     @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
 
@@ -40,6 +41,7 @@
                 @endforeach
             </select>
         @endif
+        <label style="align-self:center"><input type="checkbox" name="overdue" value="1" @checked(request()->boolean('overdue'))> Overdue only</label>
         <button class="btn" type="submit">Filter</button>
     </form>
 
@@ -47,8 +49,8 @@
         <tr><th>No</th><th>Title</th><th>Company / contact</th><th>Type</th><th>Priority</th><th>Status</th>
             @if($isAdmin)<th>Assigned to</th>@endif<th>Due</th></tr>
         @forelse($tickets as $t)
-            <tr>
-                <td><a href="{{ route('tickets.show', $t) }}">{{ $t->ticket_no }}</a></td>
+            <tr @class(['row-new' => $highlight === $t->ticket_id]) id="ticket-{{ $t->ticket_id }}">
+                <td><a href="{{ route('tickets.show', $t) }}">{{ $t->ticket_no }}</a>@if($highlight === $t->ticket_id) <span class="pill green">New</span>@endif</td>
                 <td>{{ $t->title }}</td>
                 <td>{{ $t->company->name }}<br><span class="muted">{{ $t->contact->full_name }}</span></td>
                 <td>{{ $t->topic }}</td>
@@ -63,4 +65,9 @@
     </table>
     <div style="margin-top:1rem">{{ $tickets->links('partials.pager') }}</div>
 </div>
+
+<x-modal id="ticket-modal" marker="ticket" title="New ticket" :action="route('tickets.store')" submit="Create ticket" wide
+         :open="request()->boolean('new')">
+    @include('tickets._fields', ['ticket' => $newTicket, 'editing' => false])
+</x-modal>
 @endsection

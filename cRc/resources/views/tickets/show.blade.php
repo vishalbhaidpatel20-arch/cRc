@@ -6,7 +6,7 @@
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">{{ $ticket->ticket_no }}: {{ $ticket->title }}</h2>
-        <a class="btn light" href="{{ route('tickets.edit', $ticket) }}">Edit</a>
+        <a class="btn light" id="edit-ticket-link" data-modal="ticket-edit-modal" href="{{ route('tickets.edit', $ticket) }}">Edit</a>
     </div>
     @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
 
@@ -76,4 +76,8 @@
     </div>
     @include('partials.conversation-list', ['interactions' => $interactions, 'showContact' => true])
 </div>
+
+<x-modal id="ticket-edit-modal" marker="ticket-edit" :title="'Edit '.$ticket->ticket_no" :action="route('tickets.update', $ticket)" method="PUT" submit="Save changes" wide>
+    @include('tickets._fields', ['editing' => true])
+</x-modal>
 @endsection

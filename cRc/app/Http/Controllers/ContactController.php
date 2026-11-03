@@ -21,6 +21,8 @@ use Illuminate\View\View;
  */
 class ContactController extends Controller
 {
+    private const PER_PAGE = 20;
+
     public function index(Request $request): View
     {
         $status = $request->query('status', 'active');
@@ -32,21 +34,27 @@ class ContactController extends Controller
             ->when($status === 'active', fn ($q) => $q->where('contacts.is_active', 1))
             ->when($status === 'inactive', fn ($q) => $q->where('contacts.is_active', 0))
             ->orderBy('full_name')
-            ->paginate(20)
+            ->paginate(self::PER_PAGE)
             ->withQueryString();
+
+        // Blank contact for the "New contact" pop-up; ?new=1&company_id=3 pre-selects the company.
+        $newContact = new Contact(['is_active' => true, 'company_id' => $request->boolean('new') ? $request->query('company_id') : null]);
 
         return view('contacts.index', [
             'contacts' => $contacts,
-            'companies' => Company::orderBy('name')->get(['company_id', 'name']),
+            'companies' => Company::orderBy('name')->get(['company_id', 'name']),   // for the filter
             'status' => $status,
-        ]);
+            'newContact' => $newContact,
+        ] + $this->formData($newContact) + ['formCompanies' => $this->formData($newContact)['companies']]);
     }
 
     public function show(Request $request, Contact $contact, TemplateRenderer $renderer): View
     {
         $contact->load(['company', 'profile', 'modules']);
 
-        return view('contacts.show', $renderer->panelData($request, $contact, null) + [
+        $editData = $request->user()->isAdmin() ? $this->formData($contact) : [];   // for the "Edit contact" pop-up
+
+        return view('contacts.show', $editData + $renderer->panelData($request, $contact, null) + [
             'contact' => $contact,
             'interactionCount' => Interaction::where('contact_id', $contact->contact_id)->count(),
             'interactions' => Interaction::with(['user', 'ticket', 'followUp'])->where('contact_id', $contact->contact_id)
@@ -76,7 +84,13 @@ class ContactController extends Controller
             return $contact;
         });
 
-        return redirect()->route('contacts.show', $contact)->with('status', 'Contact created.');
+        // Back to the contacts list, on the page where the new contact sits (ordered by name), highlighted.
+        $before = Contact::where('is_active', 1)->where('full_name', '<', $contact->full_name)->count();
+        $page = intdiv($before, self::PER_PAGE) + 1;
+
+        return redirect()->route('contacts.index', $page > 1 ? ['page' => $page] : [])
+            ->with('status', "Contact {$contact->full_name} created.")
+            ->with('highlight', $contact->contact_id);
     }
 
     public function edit(Contact $contact): View

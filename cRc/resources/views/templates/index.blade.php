@@ -1,12 +1,13 @@
 @extends('layouts.app')
 @php($isAdmin = auth()->user()->isAdmin())
+@php($highlight = session('highlight'))
 @section('title', 'Templates')
 
 @section('content')
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">Message templates</h2>
-        @if($isAdmin)<a class="btn" href="{{ route('templates.create') }}">+ New template</a>@endif
+        @if($isAdmin)<a class="btn" id="new-template-link" data-modal="template-modal" href="{{ route('templates.create') }}">+ New template</a>@endif
     </div>
     @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
     <p class="muted">Pick a template while logging a conversation on a ticket or contact page. Placeholders:
@@ -34,15 +35,15 @@
     <table class="list">
         <tr><th>Name</th><th>Category</th><th>Channel</th><th>Message</th>@if($isAdmin)<th>Status</th><th></th>@endif</tr>
         @forelse($templates as $t)
-            <tr>
-                <td>{{ $t->name }}</td>
+            <tr @class(['row-new' => $highlight === $t->template_id]) id="template-{{ $t->template_id }}">
+                <td>{{ $t->name }}@if($highlight === $t->template_id) <span class="pill green">New</span>@endif</td>
                 <td>{{ str_replace('_', ' ', $t->category) }}</td>
                 <td>{{ $t->channel }}</td>
                 <td>@if($t->subject)<strong>{{ $t->subject }}</strong><br>@endif<span style="white-space:pre-wrap">{{ $t->body }}</span></td>
                 @if($isAdmin)
                     <td><span class="tag {{ $t->is_active ? '' : 'off' }}">{{ $t->is_active ? 'Active' : 'Inactive' }}</span></td>
                     <td style="white-space:nowrap">
-                        <a href="{{ route('templates.edit', $t) }}">Edit</a>
+                        <a href="{{ route('templates.edit', $t) }}" data-modal="template-edit-{{ $t->template_id }}">Edit</a>
                         <form method="POST" action="{{ route('templates.active', $t) }}" style="display:inline">
                             @csrf @method('PATCH')
                             <button class="btn light" type="submit">{{ $t->is_active ? 'Deactivate' : 'Activate' }}</button>
@@ -55,4 +56,18 @@
         @endforelse
     </table>
 </div>
+
+@if($isAdmin)
+    <x-modal id="template-modal" marker="template-new" title="New template" :action="route('templates.store')" submit="Create template" wide
+             :note="'Placeholders: '.implode(', ', array_map(fn ($k) => \App\Models\MessageTemplate::token($k), array_keys(\App\Models\MessageTemplate::PLACEHOLDERS)))"
+             :open="request()->boolean('new')">
+        @include('templates._fields', ['template' => new \App\Models\MessageTemplate(['category' => 'general', 'channel' => 'email']), 'scope' => 'template-new'])
+    </x-modal>
+
+    @foreach($templates as $t)
+        <x-modal :id="'template-edit-'.$t->template_id" :marker="'template-edit-'.$t->template_id" :title="'Edit template'" :action="route('templates.update', $t)" method="PUT" submit="Save changes" wide>
+            @include('templates._fields', ['template' => $t, 'scope' => 'template-edit-'.$t->template_id])
+        </x-modal>
+    @endforeach
+@endif
 @endsection
