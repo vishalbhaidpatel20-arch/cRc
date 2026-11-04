@@ -80,6 +80,10 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/tickets/{ticket}/assign', [TicketController::class, 'assign'])
         ->middleware('role:admin')->name('tickets.assign');
 
+    // Notifications: the header bell polls the feed; opening one marks it read and goes to its ticket.
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/feed', [NotificationController::class, 'feed'])->name('notifications.feed');
+    Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
     Route::post('/notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');
 
     // Conversation log. Everyone logs and reads; entries are append-only (no edit/delete routes).

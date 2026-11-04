@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'cRc') - cRc</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/crc-badge.svg') }}">
     <style>
@@ -106,6 +107,31 @@
         .grid-skeleton .gs-head{height:49px;background:#f8f9fb;border-bottom:1px solid #dde1e6}
         .grid-skeleton .gs-row{height:56px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;padding:0 16px}
         .grid-skeleton .gs-row span{display:block;width:60%;height:10px;border-radius:5px;background:#eef0f3}
+        /* Notification bell (partials/notification-bell.blade.php, js/notifications.js) */
+        .hright{display:flex;align-items:center;gap:1rem}
+        .bell{position:relative}
+        header .bell-btn{position:relative;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid #d5d8dd;border-radius:50%;background:#fff;color:#1F1A5C;padding:0;margin:0;text-decoration:none}
+        header .bell-btn:hover{background:#f3f0ff;text-decoration:none}
+        .bell-count{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#d92d20;color:#fff;font-size:.7rem;font-weight:600;line-height:18px;text-align:center}
+        .bell-count[hidden]{display:none}
+        .bell-panel{position:absolute;right:0;top:calc(100% + 10px);width:380px;max-width:92vw;background:#fff;border:1px solid #e5e5ea;border-radius:12px;box-shadow:0 12px 40px #0003;z-index:60;overflow:hidden}
+        .bell-panel[hidden]{display:none}
+        .bell-head{display:flex;justify-content:space-between;align-items:center;padding:.7rem 1rem;border-bottom:1px solid #eee}
+        header .bell-link{border:0;background:none;padding:0;color:#5B4BDB;font-size:.85rem;cursor:pointer}
+        header .bell-link:hover{text-decoration:underline}
+        .bell-list{max-height:60vh;overflow-y:auto}
+        .bell-item{display:grid;grid-template-columns:auto 1fr;gap:.2rem .6rem;padding:.7rem 1rem;border-bottom:1px solid #f0f0f3;color:#1f2933;text-decoration:none!important;margin:0!important;font-weight:400!important}
+        .bell-item:hover{background:#f8f7ff}
+        .bell-item.unread{background:#f3f0ff;box-shadow:inset 3px 0 0 #5B4BDB}
+        .bell-text{font-size:.9rem;overflow-wrap:anywhere}
+        .bell-detail,.bell-time{grid-column:2;font-size:.78rem;color:#7b8794}
+        .bell-empty{padding:1.4rem 1rem;text-align:center;color:#7b8794;font-size:.9rem}
+        header .bell-foot{display:block;text-align:center;padding:.65rem;font-size:.85rem;border-top:1px solid #eee;margin:0}
+        .bell-tag{align-self:start;font-size:.7rem;font-weight:600;border-radius:999px;padding:.1rem .55rem;background:#e4e7eb;color:#52606d;white-space:nowrap}
+        .bell-tag.assigned{background:#dbe8ff;color:#1d4e9e}
+        .bell-tag.completed{background:#cdeede;color:#0b5b3a}
+        .bell-toast{position:fixed;right:1.5rem;bottom:1.5rem;max-width:360px;background:#1F1A5C;color:#fff;padding:.8rem 1.1rem;border-radius:10px;box-shadow:0 10px 30px #0004;font-size:.9rem;z-index:70}
+        .bell-toast[hidden]{display:none}
         /* While a partial refresh is in flight (js/partial.js) */
         html.ajax-busy,html.ajax-busy *{cursor:progress}
         html.ajax-busy [data-region]{opacity:.7;transition:opacity .15s}
@@ -131,11 +157,14 @@
                 <a href="{{ route('admin.users.index') }}">Users</a>
             @endif
         </nav>
-        <form method="POST" action="{{ route('logout') }}" class="who" data-no-ajax>
-            @csrf
-            {{ auth()->user()->full_name }}<span class="badge">{{ auth()->user()->role }}</span>
-            <button type="submit">Log out</button>
-        </form>
+        <div class="hright">
+            @include('partials.notification-bell')
+            <form method="POST" action="{{ route('logout') }}" class="who" data-no-ajax>
+                @csrf
+                {{ auth()->user()->full_name }}<span class="badge">{{ auth()->user()->role }}</span>
+                <button type="submit">Log out</button>
+            </form>
+        </div>
     </header>
 @endauth
 <main>@yield('content')</main>
@@ -144,5 +173,8 @@
     <span>&copy; {{ date('Y') }} Client Support Desk. For internal use only.</span>
 </footer>
 <script src="{{ asset('js/partial.js') }}" defer></script>
+@auth
+    <script src="{{ asset('js/notifications.js') }}" defer></script>
+@endauth
 </body>
 </html>

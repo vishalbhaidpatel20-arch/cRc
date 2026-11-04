@@ -91,6 +91,15 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   full width via `main:has(.grid-host)`; the admin and agent dashboards are full width too (`main:has([data-region=cards])` / `board`). Paging and filtering stay server-side: each grid fills the window height (`fit()` in grid.jsx; the `footer.site` is below the fold and only appears when you scroll down) and pages on screen with AG Grid's own pager (`layout()` in grid.jsx picks whole rows that fit, stretches them a little to fill the box, or shrinks the grid when the list is short; 56px base rows, long text clipped to 2 lines with a hover tip), so nothing scrolls. The server sends up to `config('crc.per_page')` rows (200, env `CRC_PER_PAGE`; `tests/TestCase.php` sets 20) and `partials.pager` is only a fallback bar for bigger lists or no JavaScript (inside the `results` area; 20 per page; after a create, redirect to the page where the new row sits). The plain table is the no-JavaScript fallback,
   and empty lists keep their "No ... found" row. `partial.js` fires `partial:updated` after a swap so grids re-mount. New list
   tables: add `data-grid` (`<th data-flex="3">` = wider column; header cells = columns, one `<td>` per column, no colspan rows except the empty message).
+- Notifications (database channel, in-app only): `TicketAssigned` (admin assigns: the agent is told) and `TicketCompleted` (an agent resolves
+  the ticket they hold: the admin who made the latest assignment to them is told, else every active admin; see
+  `TicketController::notifyCompleted`). Header bell (`partials/notification-bell`, `public/js/notifications.js`): unread badge, dropdown of the
+  latest 8, a toast for a new one, polls `GET /notifications/feed` every 20 s and after every in-place page update (`partial:updated`).
+  `/notifications` is the full list (a grid), `GET /notifications/{id}/open` marks one read and goes to its ticket, `POST /notifications/read`
+  marks all read. Everything goes through `$request->user()->notifications()`, so a user only ever reaches their own. Text comes from
+  `App\Support\NotificationPresenter`; agent-only visibility applies there too: if the agent no longer has the ticket, show only its number,
+  never the title, and opening goes to the ticket list. New type: add a class, a case in the presenter and a test; new routes go in
+  `SecurityJourneyTest`.
 - Message templates: admins manage, agents only use active ones. Placeholders are a fixed whitelist
   (`MessageTemplate::PLACEHOLDERS`: name, company, ticket_no, ticket_title, agent_name), filled by `TemplateRenderer`
   with plain text substitution (nothing evaluated). Nothing is sent. In Blade never write a literal double-brace pair

@@ -23,10 +23,23 @@ class UserController extends Controller
         return User::orderBy('role')->orderBy('full_name')->orderBy('user_id');
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
+        $term = trim((string) $request->query('q'));
+
+        $users = $this->ordered()
+            ->when($term !== '', function ($query) use ($term) {
+                $like = '%'.addcslashes($term, '%_\\').'%';
+                $query->where(fn ($q) => $q->where('full_name', 'like', $like)
+                    ->orWhere('email', 'like', $like)
+                    ->orWhere('phone', 'like', $like)
+                    ->orWhere('role', 'like', $like));
+            })
+            ->paginate(config('crc.per_page'))
+            ->withQueryString();
+
         return view('admin.users.index', [
-            'users' => $this->ordered()->paginate(config('crc.per_page'))->withQueryString(),
+            'users' => $users,
             'companies' => Company::where('is_active', 1)->orderBy('name')->get(),   // for the pop-up
         ]);
     }

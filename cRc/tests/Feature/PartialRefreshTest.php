@@ -128,7 +128,7 @@ class PartialRefreshTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
 
-        foreach (['companies.index', 'contacts.index', 'tickets.index', 'interactions.index', 'templates.index'] as $route) {
+        foreach (['companies.index', 'contacts.index', 'tickets.index', 'interactions.index', 'templates.index', 'admin.users.index'] as $route) {
             $html = $this->actingAs($admin)->get(route($route))->getContent();
             $withoutNoscript = preg_replace('#<noscript>.*?</noscript>#s', '', $html);
 
@@ -265,5 +265,24 @@ class PartialRefreshTest extends TestCase
         $dash = $this->get(route('admin.dashboard'))->assertOk()->getContent();
         $this->assertStringContainsString('<table class="list" data-grid data-page-size="5">', $dash);
         $this->assertStringContainsString('<th>Ticket</th>', $dash);
+    }
+
+    public function test_the_users_list_has_a_search_bar_that_filters_by_name_email_phone_or_role(): void
+    {
+        $admin = User::factory()->admin()->create(['full_name' => 'Boss Person']);
+        User::factory()->create(['full_name' => 'Zelda Finder', 'email' => 'zelda@find.example', 'phone' => '9111100000']);
+        User::factory()->create(['full_name' => 'Other Agent', 'email' => 'other@find.example', 'phone' => '9222200000']);
+
+        $page = $this->actingAs($admin)->get(route('admin.users.index'))->assertOk();
+        $page->assertSee('name="q"', false)->assertSee('placeholder="Search"', false);
+
+        $this->get(route('admin.users.index', ['q' => 'zelda']))->assertSee('Zelda Finder')->assertDontSee('Other Agent');
+        $this->get(route('admin.users.index', ['q' => 'other@find']))->assertSee('Other Agent')->assertDontSee('Zelda Finder');
+        $this->get(route('admin.users.index', ['q' => '91111']))->assertSee('Zelda Finder')->assertDontSee('Other Agent');
+        $this->get(route('admin.users.index', ['q' => 'admin']))->assertSee('Boss Person')->assertDontSee('Zelda Finder');
+        $this->get(route('admin.users.index', ['q' => 'nobody-matches-this']))->assertSee('No users found.');
+
+        // The search term survives into the box and into the pager links.
+        $this->get(route('admin.users.index', ['q' => 'zelda']))->assertSee('value="zelda"', false);
     }
 }

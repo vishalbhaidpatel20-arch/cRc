@@ -9,11 +9,13 @@ use App\Models\Ticket;
 use App\Models\TicketAssignment;
 use App\Models\User;
 use App\Notifications\TicketAssigned;
+use App\Notifications\TicketCompleted;
 use App\Services\TemplateRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -172,9 +174,37 @@ class TicketController extends Controller
             'due_at' => ['nullable', 'date'],
         ]);
 
+        $wasResolved = $ticket->status === 'resolved';
         $ticket->update($data);
 
+        // An agent just finished their ticket: tell the admin who gave it to them.
+        if (! $wasResolved && $ticket->status === 'resolved') {
+            $this->notifyCompleted($ticket, $request->user());
+        }
+
         return redirect()->route('tickets.show', $ticket)->with('status', 'Ticket updated.');
+    }
+
+    /**
+     * Only when the agent who holds the ticket resolves it. The recipient is the admin who made the latest assignment
+     * to that agent; if that admin is gone or inactive (or the agent created the ticket), every other active admin.
+     */
+    private function notifyCompleted(Ticket $ticket, User $actor): void
+    {
+        if ($actor->isAdmin() || $ticket->assigned_to !== $actor->user_id) {
+            return;
+        }
+
+        $assigner = TicketAssignment::where('ticket_id', $ticket->ticket_id)
+            ->where('to_user', $actor->user_id)
+            ->orderByDesc('assigned_at')->orderByDesc('assignment_id')
+            ->first()?->assignedBy;
+
+        $recipients = ($assigner && $assigner->isAdmin() && $assigner->is_active)
+            ? collect([$assigner])
+            : User::where('role', User::ROLE_ADMIN)->where('is_active', 1)->get();
+
+        Notification::send($recipients, new TicketCompleted($ticket, $actor));
     }
 
     /** Admin only: assign an unassigned ticket or move it to another agent. */

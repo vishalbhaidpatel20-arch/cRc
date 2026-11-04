@@ -14,11 +14,16 @@
     </div>
     @include('partials.flash')
 
+    <form method="GET" class="filters">
+        <input name="q" value="{{ request('q') }}" placeholder="Search" title="Search name, email, phone or role" autocomplete="off">
+        <noscript><button class="btn" type="submit">Search</button></noscript>
+    </form>
+
 <div data-region="results">
     <x-grid-skeleton :total="$users->count()" />
     <table class="list" data-grid>
         <tr><th>Name</th><th>Email</th><th>Role</th><th>Companies</th><th>Status</th></tr>
-        @foreach($users as $u)
+        @forelse($users as $u)
             <tr @class(['row-new' => $highlight === $u->user_id]) id="user-{{ $u->user_id }}">
                 <td>{{ $u->full_name }}@if($highlight === $u->user_id) <span class="pill green">New</span>@endif</td>
                 <td>{{ $u->email }}</td>
@@ -26,7 +31,9 @@
                 <td>{{ $u->all_companies ? 'All' : 'Selected' }}</td>
                 <td>{{ $u->is_active ? 'Active' : 'Inactive' }}</td>
             </tr>
-        @endforeach
+        @empty
+            <tr><td colspan="5" class="muted">No users found.</td></tr>
+        @endforelse
     </table>
     {{ $users->links('partials.pager') }}
 </div>
