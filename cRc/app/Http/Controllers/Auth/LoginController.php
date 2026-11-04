@@ -40,7 +40,10 @@ class LoginController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route($request->user()->homeRoute()));
+        // Everyone starts on their dashboard, whatever page they were sent away from (an old link, an expired session).
+        $request->session()->forget('url.intended');
+
+        return redirect()->route($request->user()->homeRoute());
     }
 
     public function destroy(Request $request): RedirectResponse

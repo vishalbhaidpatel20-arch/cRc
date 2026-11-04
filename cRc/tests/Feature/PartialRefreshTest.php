@@ -285,4 +285,22 @@ class PartialRefreshTest extends TestCase
         // The search term survives into the box and into the pager links.
         $this->get(route('admin.users.index', ['q' => 'zelda']))->assertSee('value="zelda"', false);
     }
+
+    public function test_the_ticket_details_are_a_grid_with_every_field(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $agent = User::factory()->agent()->create(['full_name' => 'Divya Menon']);
+        $ticket = \App\Models\Ticket::factory()->assignedTo($agent)->create(['due_at' => now()->subDay()]);
+
+        $html = $this->actingAs($admin)->get(route('tickets.show', $ticket))->assertOk()->getContent();
+
+        // A placeholder holds the details grid's place, then the five field rows follow a Detail/Value header.
+        $this->assertMatchesRegularExpression('/<div class="grid-skeleton" data-total="5"\s+data-page-size="5"[^>]*>.*?<table class="list" data-grid data-page-size="5">\s*<tr><th data-nosort>Detail<\/th>/s', $html);
+        foreach (['detail-company' => 'Company', 'detail-contact' => 'Raised by', 'detail-assignee' => 'Assigned to', 'detail-due' => 'Due', 'detail-created' => 'Created'] as $id => $label) {
+            $this->assertMatchesRegularExpression('/<tr id="'.$id.'"><td class="muted">'.$label.'<\/td>/', $html);
+        }
+        $this->assertStringContainsString('Divya Menon', $html);
+        $this->assertStringContainsString('<span class="overdue">', $html, 'an overdue due date keeps its red styling inside the grid cell');
+        $this->assertStringContainsString(route('contacts.show', $ticket->contact), $html);
+    }
 }

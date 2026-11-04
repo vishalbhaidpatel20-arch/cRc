@@ -91,6 +91,7 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::post('/tickets/{ticket}/interactions', [InteractionController::class, 'storeForTicket'])->name('tickets.interactions.store');
     Route::post('/contacts/{contact}/interactions', [InteractionController::class, 'storeForContact'])->name('contacts.interactions.store');
 
+    Route::get('/follow-ups', [FollowUpController::class, 'index'])->name('follow-ups.index');
     Route::patch('/follow-ups/{followUp}/done', [FollowUpController::class, 'done'])->name('follow-ups.done');
 
     // Message templates: admins manage (declared first so /templates/create is not a {template}), everyone reads.

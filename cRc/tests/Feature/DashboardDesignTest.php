@@ -53,7 +53,7 @@ class DashboardDesignTest extends TestCase
 
     public function test_both_dashboards_use_the_full_page_width(): void
     {
-        $rule = 'main:has(.dash-hero){max-width:none;padding:0 1.5rem}';
+        $rule = 'main:has(.dash-hero),main:has(.contact-grid){max-width:none;padding:0 1.5rem}';
 
         $this->as($this->admin)->get(route('admin.dashboard'))->assertOk()
             ->assertSee('class="dash-hero"', false)->assertSee($rule, false);
@@ -119,5 +119,14 @@ class DashboardDesignTest extends TestCase
         $this->assertSame(1, $r->viewData('overdueCount'));
         $r->assertSee(route('tickets.index', ['overdue' => 1]), false)->assertSee(route('notifications.index'), false)
             ->assertSee('My tickets by priority');
+    }
+
+    public function test_the_contact_page_uses_the_full_page_width(): void
+    {
+        $contact = \App\Models\Contact::factory()->create();
+
+        $this->as($this->admin)->get(route('contacts.show', $contact))->assertOk()
+            ->assertSee('class="contact-grid"', false)
+            ->assertSee('main:has(.contact-grid){max-width:none;padding:0 1.5rem}', false);
     }
 }

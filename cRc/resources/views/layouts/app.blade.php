@@ -22,7 +22,7 @@
         body:has(header) main{min-height:calc(100vh - 65px - 4rem)}
         footer.site{flex:0 0 auto;background:#fff;border-top:1px solid #e5e5ea;padding:.7rem 1.5rem;font-size:.85rem;color:#7b8794;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
         /* Pages with a data grid, and the dashboards, use the full width of the window */
-        main:has(.grid-skeleton:not([data-page-size])),main:has(table[data-grid]:not([data-page-size])),main:has(.grid-host:not([data-page-size])),main:has(.dash-hero){max-width:none;padding:0 1.5rem}
+        main:has(.grid-skeleton:not([data-page-size])),main:has(table[data-grid]:not([data-page-size])),main:has(.grid-host:not([data-page-size])),main:has(.dash-hero),main:has(.contact-grid){max-width:none;padding:0 1.5rem}
         .grid-host{width:100%;margin-top:1rem;--ag-font-size:14px}
         .grid-host .row-new{background:#f0fbf4}
         .card{background:#fff;border-radius:10px;padding:1.5rem;box-shadow:0 1px 3px #0001}
@@ -198,6 +198,7 @@
             <a href="{{ route('companies.index') }}">Companies</a>
             <a href="{{ route('contacts.index') }}">Contacts</a>
             <a href="{{ route('interactions.index') }}">Conversations</a>
+            <a href="{{ route('follow-ups.index') }}">Follow-ups</a>
             @if(auth()->user()->isAdmin())
                 <a href="{{ route('admin.users.index') }}">Users</a>
             @endif

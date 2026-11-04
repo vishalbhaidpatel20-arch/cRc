@@ -40,6 +40,25 @@ class AuthTest extends TestCase
         $this->assertAuthenticatedAs($agent);
     }
 
+    public function test_login_always_starts_on_the_dashboard_even_after_being_sent_away_from_another_page(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $agent = User::factory()->agent()->create();
+
+        foreach ([[$admin, 'admin.dashboard'], [$agent, 'agent.dashboard']] as [$user, $dashboard]) {
+            // A guest opens a protected page first (an old link, an expired session): Laravel remembers it as "intended".
+            $this->get('/tickets')->assertRedirect(route('login'));
+            $this->assertSame(url('/tickets'), session('url.intended'));
+
+            $this->post('/login', ['email' => $user->email, 'password' => 'password'])
+                ->assertRedirect(route($dashboard));
+            $this->assertNull(session('url.intended'), 'the remembered page is dropped');
+
+            $this->post('/logout');
+            $this->app['auth']->forgetGuards();
+        }
+    }
+
     public function test_wrong_password_is_rejected(): void
     {
         $user = User::factory()->create();

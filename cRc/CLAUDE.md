@@ -18,7 +18,7 @@ Internal support desk: a software company tracks its 10 client companies, the cl
 - Primary keys are named, not `id`: `user_id`, `company_id`, `contact_id`, `ticket_id`... Models set `$primaryKey`.
   Tables mostly have only `created_at`, so models use `$timestamps = false`.
 - Users: `password_hash` (not `password`), `full_name` (not `name`), no remember token. `User::getAuthPassword()`
-  maps the column. `role` is `admin` or `agent`. Use `$user->homeRoute()` for the post-login redirect.
+  maps the column. `role` is `admin` or `agent`. Use `$user->homeRoute()` for the post-login redirect: login ALWAYS lands on the dashboard (no `intended()`, the remembered page is dropped).
 - Never hard-delete users, companies or contacts: deactivate with `is_active`. FKs use RESTRICT for history,
   CASCADE for child rows, SET NULL for optional links (see `database/sql/01_schema.sql`).
 - There is NO public registration. Only admins create agents (`Admin\UserController`); role is forced to `agent`
@@ -44,7 +44,7 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   `<noscript>` form falls back to `?template=ID`). Channel display names come from `Interaction::channelLabel()`.
 - Dashboard design: both dashboards share one look: a `.dash-hero` header (greeting and date are filled in by a tiny inline script from the
   browser's clock, because the server runs in UTC), `<x-stat>` icon cards (tone: brand/info/good/warn/bad), `.panel` blocks in a 2/3 + 1/3
-  `.dash-grid`, `partials.dash-bars` for the breakdown bars. `main:has(.dash-hero)` makes them full width. Both dashboards' headings are
+  `.dash-grid`, `partials.dash-bars` for the breakdown bars. `main:has(.dash-hero)` makes them full width (and `main:has(.contact-grid)` the contact page). Both dashboards' headings are
   "<First name>'s dashboard" (the `<title>` stays "Admin dashboard" / "Agent dashboard"). Keep the strings the tests pin ("Welcome, <name>", "Unassigned queue",
   "Workload per agent", "assigned by <admin>", the quick-link URLs). Panels that change in place carry `data-region` names (admin: `cards`,
   `queue`, `workload`; agent: `agent-stats`, `agent-next`, `agent-followups`, `agent-assigned`, `agent-priority`).
@@ -82,7 +82,7 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   (`<x-grid-skeleton :total="..." :page-size="5" />` + `<table ... data-grid data-page-size="5">`): dashboard cards and a ticket's
   assignment history; fixed rows per page, as tall as its rows, no page widening. Every grid table needs a header `<tr>` of `<th>`
   (`data-flex="3"` wider column, `data-nosort` not sortable). A row's inputs/buttons that need a form use `form="id"` pointing to a
-  `<form id>` outside the table (see Modules). Key/value detail tables stay plain.
+  `<form id>` outside the table (see Modules). A key/value details table is a two-column grid too (`Detail` / `Value` header, one row per field, `data-nosort`; see the ticket page); an overdue date keeps its red styling by wrapping the value in a `<span class="overdue">` (the grid keeps only the cell content, not the `<td>` class).
 - Grid without flash: the server still sends the plain `<table class="list" data-grid>` (no-JavaScript fallback), but with JS on it must
   never be painted. Put `<x-grid-skeleton :total="$rows->count()" />` directly before every `data-grid` table and
   `@push('assets') @include('partials.grid-assets') @endpush` on the page (requests the grid chunk from `<head>`, not after `app.js`).
@@ -99,6 +99,9 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   tables: add `data-grid` (`<th data-flex="3">` = wider column; header cells = columns, one `<td>` per column, no colspan rows except the empty message).
   Cell text wraps to 2 lines (the cell span in grid.jsx needs `minWidth: 0` and `whiteSpace: 'normal'`: AG cells are nowrap flex containers,
   and without these long text is cut off on one line); give a column with long text or pills enough `data-flex` (see the Conversations table).
+- Follow-ups page (`FollowUpController@index`, `GET /follow-ups`, menu link for everyone): agents see only their own follow-ups, admins see all and can
+  filter by agent; filters pending (default) / overdue / due / today / upcoming / done / all, plus search; "Mark done" uses `follow-ups.done`. The admin
+  "Follow-ups overdue" and agent "Follow-ups due" dashboard cards link to it with the matching filter, so a dashboard number always has a list behind it.
 - Notifications (database channel, in-app only): `TicketAssigned` (admin assigns: the agent is told) and `TicketCompleted` (an agent resolves
   the ticket they hold: the admin who made the latest assignment to them is told, else every active admin; see
   `TicketController::notifyCompleted`). Header bell (`partials/notification-bell`, `public/js/notifications.js`): unread badge, dropdown of the

@@ -32,7 +32,7 @@
     <x-stat icon="alert" :tone="$cards['critical'] > 0 ? 'bad' : 'good'" :value="$cards['critical']" label="Critical open" hint="highest priority" :href="route('tickets.index', ['priority' => 'critical'])" />
     <x-stat icon="clock" :tone="$cards['overdue'] > 0 ? 'bad' : 'good'" :value="$cards['overdue']" label="Overdue" hint="past the due date" :href="route('tickets.index', ['overdue' => 1])" />
     <x-stat icon="chat" tone="info" :value="$cards['conversations_today']" label="Conversations today" hint="logged by the team" :href="route('interactions.index', ['from' => today()->toDateString()])" />
-    <x-stat icon="bell" :tone="$cards['followups_overdue'] > 0 ? 'warn' : 'good'" :value="$cards['followups_overdue']" label="Follow-ups overdue" hint="promised calls missed" />
+    <x-stat icon="bell" :tone="$cards['followups_overdue'] > 0 ? 'warn' : 'good'" :value="$cards['followups_overdue']" label="Follow-ups overdue" hint="promised calls missed" :href="route('follow-ups.index', ['filter' => 'overdue'])" />
 </div>
 
 <div class="dash-grid">

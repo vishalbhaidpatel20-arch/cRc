@@ -25,7 +25,7 @@
 <div class="dash-stats" data-region="agent-stats">
     <x-stat icon="ticket" tone="brand" :value="$openCount" label="Open tickets" hint="assigned to you" :href="route('tickets.index')" />
     <x-stat icon="clock" :tone="$overdueCount > 0 ? 'bad' : 'good'" :value="$overdueCount" label="Overdue" :hint="$overdueCount > 0 ? 'past the due date' : 'nothing late'" :href="route('tickets.index', ['overdue' => 1])" />
-    <x-stat icon="bell" :tone="$followUps->count() > 0 ? 'warn' : 'good'" :value="$followUps->count()" label="Follow-ups due" :hint="$followUps->count() > 0 ? 'today or overdue' : 'all caught up'" />
+    <x-stat icon="bell" :tone="$followUps->count() > 0 ? 'warn' : 'good'" :value="$followUps->count()" label="Follow-ups due" :hint="$followUps->count() > 0 ? 'today or overdue' : 'all caught up'" :href="route('follow-ups.index', ['filter' => 'due'])" />
     <x-stat icon="inbox" :tone="$notifications->count() > 0 ? 'info' : 'good'" :value="$notifications->count()" label="New assignments" :hint="$notifications->count() > 0 ? 'unread' : 'nothing new'" :href="route('notifications.index')" />
 </div>
 

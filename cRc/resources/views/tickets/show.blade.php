@@ -21,14 +21,19 @@
         <span class="tag">{{ $ticket->topic }}</span>
     </p>
 
-    <table class="list" style="max-width:640px">
-        <tr><th>Company</th><td><a href="{{ route('companies.show', $ticket->company) }}">{{ $ticket->company->name }}</a></td></tr>
-        <tr><th>Raised by</th><td><a href="{{ route('contacts.show', $ticket->contact) }}">{{ $ticket->contact->full_name }}</a>
-            <span class="muted">{{ $ticket->contact->phone }} {{ $ticket->contact->email }}</span></td></tr>
-        <tr><th>Assigned to</th><td>{!! $ticket->assignee ? e($ticket->assignee->full_name) : '<span class="muted">Unassigned</span>' !!}</td></tr>
-        <tr><th>Due</th><td class="{{ $ticket->isOverdue() ? 'overdue' : '' }}">{{ $ticket->due_at?->format('d M Y H:i') ?? '-' }}</td></tr>
-        <tr><th>Created</th><td>{{ $ticket->created_at?->format('d M Y H:i') }}</td></tr>
-    </table>
+    {{-- The ticket's details as a small data grid (field / value), like every other table in the app. --}}
+    <div style="max-width:820px">
+        <x-grid-skeleton :total="5" :page-size="5" />
+        <table class="list" data-grid data-page-size="5">
+            <tr><th data-nosort>Detail</th><th data-nosort data-flex="4">Value</th></tr>
+            <tr id="detail-company"><td class="muted">Company</td><td><a href="{{ route('companies.show', $ticket->company) }}">{{ $ticket->company->name }}</a></td></tr>
+            <tr id="detail-contact"><td class="muted">Raised by</td><td><a href="{{ route('contacts.show', $ticket->contact) }}">{{ $ticket->contact->full_name }}</a>
+                <span class="muted">{{ $ticket->contact->phone }} {{ $ticket->contact->email }}</span></td></tr>
+            <tr id="detail-assignee"><td class="muted">Assigned to</td><td>{!! $ticket->assignee ? e($ticket->assignee->full_name) : '<span class="muted">Unassigned</span>' !!}</td></tr>
+            <tr id="detail-due"><td class="muted">Due</td><td>@if($ticket->isOverdue())<span class="overdue">{{ $ticket->due_at?->format('d M Y H:i') }}</span>@else{{ $ticket->due_at?->format('d M Y H:i') ?? '-' }}@endif</td></tr>
+            <tr id="detail-created"><td class="muted">Created</td><td>{{ $ticket->created_at?->format('d M Y H:i') }}</td></tr>
+        </table>
+    </div>
 
     @if($ticket->description)
         <h3>Description</h3>

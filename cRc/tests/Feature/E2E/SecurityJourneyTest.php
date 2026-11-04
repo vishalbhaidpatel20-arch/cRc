@@ -24,6 +24,7 @@ class SecurityJourneyTest extends TestCase
             ['GET', '/admin/modules'],
             ['POST', '/admin/modules'],
             ['PUT', '/admin/modules/1'],
+            ['GET', '/follow-ups'],
             ['PATCH', '/follow-ups/1/done'],
             ['GET', '/agent'],
             ['GET', '/companies'],
