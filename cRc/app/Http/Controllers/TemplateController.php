@@ -17,6 +17,20 @@ class TemplateController extends Controller
 {
     public function __construct(private TemplateRenderer $renderer) {}
 
+    private function ordered()
+    {
+        return MessageTemplate::query()->orderBy('category')->orderBy('name')->orderBy('channel')->orderBy('template_id');
+    }
+
+    /** Redirect to the (default, active) list page where this template sits, so its highlighted row is visible. */
+    private function listRedirect(MessageTemplate $template)
+    {
+        $position = $this->ordered()->where('is_active', 1)->pluck('template_id')->search($template->template_id);
+        $page = $position === false ? 1 : intdiv($position, config('crc.per_page')) + 1;
+
+        return redirect()->route('templates.index', $page > 1 ? ['page' => $page] : []);
+    }
+
     public function index(Request $request): View
     {
         $isAdmin = $request->user()->isAdmin();
@@ -27,8 +41,9 @@ class TemplateController extends Controller
             ->when(in_array($request->query('category'), MessageTemplate::CATEGORIES, true), fn ($q) => $q->where('category', $request->query('category')))
             ->when($status === 'active', fn ($q) => $q->where('is_active', 1))
             ->when($status === 'inactive', fn ($q) => $q->where('is_active', 0))
-            ->orderBy('category')->orderBy('name')->orderBy('channel')
-            ->get();
+            ->orderBy('category')->orderBy('name')->orderBy('channel')->orderBy('template_id')
+            ->paginate(config('crc.per_page'))
+            ->withQueryString();
 
         return view('templates.index', compact('templates', 'status'));
     }
@@ -42,7 +57,7 @@ class TemplateController extends Controller
     {
         $template = MessageTemplate::create($this->validated($request) + ['is_active' => true]);
 
-        return redirect()->route('templates.index')
+        return $this->listRedirect($template)
             ->with('status', "Template {$template->name} created.")
             ->with('highlight', $template->template_id);
     }
@@ -56,7 +71,7 @@ class TemplateController extends Controller
     {
         $template->update($this->validated($request, $template));
 
-        return redirect()->route('templates.index')
+        return $this->listRedirect($template)
             ->with('status', 'Template updated.')
             ->with('highlight', $template->template_id);
     }

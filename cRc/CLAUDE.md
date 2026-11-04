@@ -13,7 +13,8 @@ Internal support desk: a software company tracks its 10 client companies, the cl
 - Next: Milestone 6 (deploy: EC2, backups, queue worker/scheduler).
 
 ## Stack and conventions
-- Laravel 13, PHP 8.3+, plain Blade views (no Filament, no starter kit, no JS build step needed), MariaDB 10.4.
+- Laravel 13, PHP 8.3+, plain Blade views (no Filament, no starter kit), MariaDB 10.4. `public/js/partial.js` needs no build; the data grid
+  does (Vite + React + AG Grid, run `npm run build`; `public/build` is git-ignored, so build on deploy).
 - Primary keys are named, not `id`: `user_id`, `company_id`, `contact_id`, `ticket_id`... Models set `$primaryKey`.
   Tables mostly have only `created_at`, so models use `$timestamps = false`.
 - Users: `password_hash` (not `password`), `full_name` (not `name`), no remember token. `User::getAuthPassword()`
@@ -57,6 +58,39 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   its marker; pages with several pop-ups must scope old input and errors per pop-up (see `templates/_fields`).
   `?new=1` (plus `company_id` / `contact_id`) opens the create pop-up pre-filled, which is how other pages link to it.
   New create/edit forms should follow this pattern, not a separate page plus redirect.
+- Partial refresh (no full-page reloads): `public/js/partial.js` (plain JS, loaded by the layout) intercepts forms and
+  same-page links inside a region, sends them with `fetch()`, and swaps only the `data-region="name"` areas whose HTML
+  changed. If the reply has a different set of areas it swaps `<main>`; on an error status it shows the error page; on a
+  network failure it submits normally. Every page that changes in place must expose the same named areas on every request
+  (an always-present wrapper, never an `@if`-ed one). Flash messages use `partials/flash` (the `flash` area); lists put
+  table + pager in a `results` area; dashboards use `cards`/`queue`/`workload`. `<x-modal>` sets `data-open` when the
+  pop-up must be open; the `+ New` / `Edit` links are opened by the script's click handler (never attach per-link handlers
+  in a modal). Scripts inside an area re-run when it is swapped, so keep them idempotent. Opt out with `data-no-ajax`
+  (logout and login forms). Navigation is in place too: any same-site link fetches the page and swaps only `<main>`
+  (and the title, history and scroll position; Back/Forward work the same way), while the header and the script stay.
+  Everything keeps working without JavaScript as ordinary links and forms.
+- Auto search: GET filter forms (`form.filters`) have no Search/Filter button (it is kept inside `<noscript>`). `partial.js` submits
+  them 300 ms after typing and straight away when a select, checkbox or date changes; the newest request wins and the
+  history entry is replaced, not added. The search box is 250px (`.filters input[name=q]`); its hint is in `title`.
+- All data tables are grids. Full-size (fit the window, widen the page): the list pages, a company's contacts, Modules. Embedded
+  (`<x-grid-skeleton :total="..." :page-size="5" />` + `<table ... data-grid data-page-size="5">`): dashboard cards and a ticket's
+  assignment history; fixed rows per page, as tall as its rows, no page widening. Every grid table needs a header `<tr>` of `<th>`
+  (`data-flex="3"` wider column, `data-nosort` not sortable). A row's inputs/buttons that need a form use `form="id"` pointing to a
+  `<form id>` outside the table (see Modules). Key/value detail tables stay plain.
+- Grid without flash: the server still sends the plain `<table class="list" data-grid>` (no-JavaScript fallback), but with JS on it must
+  never be painted. Put `<x-grid-skeleton :total="$rows->count()" />` directly before every `data-grid` table and
+  `@push('assets') @include('partials.grid-assets') @endpush` on the page (requests the grid chunk from `<head>`, not after `app.js`).
+  `public/js/grid-size.js` (sync, in `<head>`) sets `<html class="js">` (CSS hides the table next to a placeholder) and owns the
+  sizing rule `crcGridLayout`, shared by the placeholder and `grid.jsx`, so the placeholder and the grid have the same height.
+  The grid mounts inside the placeholder. An empty list has no placeholder (its "No ... found" table shows). If the grid cannot
+  load, `app.js` (or an 8 s timer) removes `js` so the plain table shows. `partial.js` compares an area with its server HTML
+  (`area._srcHtml`) so an unchanged grid is not rebuilt.
+- Data grid: list tables (companies, contacts, tickets, users, templates, conversations) are `<table class="list" data-grid>` inside the
+  `results` area. `resources/js/grid.jsx` (AG Grid + React, loaded by `resources/js/app.js` through `@vite`) replaces each with a
+  full-width sortable grid built from the table's cells (cell HTML is kept, so links, tags and forms still work); `main` goes
+  full width via `main:has(.grid-host)`; the admin and agent dashboards are full width too (`main:has([data-region=cards])` / `board`). Paging and filtering stay server-side: each grid fills the window height (`fit()` in grid.jsx; the `footer.site` is below the fold and only appears when you scroll down) and pages on screen with AG Grid's own pager (`layout()` in grid.jsx picks whole rows that fit, stretches them a little to fill the box, or shrinks the grid when the list is short; 56px base rows, long text clipped to 2 lines with a hover tip), so nothing scrolls. The server sends up to `config('crc.per_page')` rows (200, env `CRC_PER_PAGE`; `tests/TestCase.php` sets 20) and `partials.pager` is only a fallback bar for bigger lists or no JavaScript (inside the `results` area; 20 per page; after a create, redirect to the page where the new row sits). The plain table is the no-JavaScript fallback,
+  and empty lists keep their "No ... found" row. `partial.js` fires `partial:updated` after a swap so grids re-mount. New list
+  tables: add `data-grid` (`<th data-flex="3">` = wider column; header cells = columns, one `<td>` per column, no colspan rows except the empty message).
 - Message templates: admins manage, agents only use active ones. Placeholders are a fixed whitelist
   (`MessageTemplate::PLACEHOLDERS`: name, company, ticket_no, ticket_title, agent_name), filled by `TemplateRenderer`
   with plain text substitution (nothing evaluated). Nothing is sent. In Blade never write a literal double-brace pair

@@ -2,14 +2,19 @@
 @php($isAdmin = auth()->user()->isAdmin())
 @section('title', $ticket->ticket_no)
 
+@push('assets')
+@include('partials.grid-assets')
+@endpush
+
 @section('content')
 <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:center">
+    <div style="display:flex;justify-content:space-between;align-items:center" data-region="ticket-head">
         <h2 style="margin:0">{{ $ticket->ticket_no }}: {{ $ticket->title }}</h2>
         <a class="btn light" id="edit-ticket-link" data-modal="ticket-edit-modal" href="{{ route('tickets.edit', $ticket) }}">Edit</a>
     </div>
-    @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
+    @include('partials.flash')
 
+    <div data-region="ticket">
     <p>
         <span class="tag {{ $ticket->priority }}">{{ $ticket->priority }}</span>
         <span class="tag">{{ str_replace('_', ' ', $ticket->status) }}</span>
@@ -47,7 +52,8 @@
     @endif
 
     <h3>Assignment history</h3>
-    <table class="list">
+    <x-grid-skeleton :total="$history->count()" :page-size="5" />
+    <table class="list" data-grid data-page-size="5">
         <tr><th>When</th><th>From</th><th>To</th><th>By</th><th>Reason</th></tr>
         @forelse($history as $h)
             <tr>
@@ -61,7 +67,9 @@
             <tr><td colspan="5" class="muted">Never assigned.</td></tr>
         @endforelse
     </table>
+    </div>
 
+    <div data-region="log">
     @include('partials.conversation-panel', [
         'action' => route('tickets.interactions.store', $ticket),
         'anchorUrl' => route('tickets.show', $ticket).'#log-conversation',
@@ -69,12 +77,15 @@
         'defaultContactId' => $ticket->contact_id,
         'defaultTopic' => $ticket->topic,
     ])
+    </div>
 
+    <div data-region="conversations">
     <div class="hist-head" id="conversations">
         <h3>Conversation history</h3>
         <span class="muted">{{ $interactions->count() }} {{ \Illuminate\Support\Str::plural('conversation', $interactions->count()) }}</span>
     </div>
     @include('partials.conversation-list', ['interactions' => $interactions, 'showContact' => true])
+    </div>
 </div>
 
 <x-modal id="ticket-edit-modal" marker="ticket-edit" :title="'Edit '.$ticket->ticket_no" :action="route('tickets.update', $ticket)" method="PUT" submit="Save changes" wide>

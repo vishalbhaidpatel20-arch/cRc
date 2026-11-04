@@ -17,10 +17,16 @@ use Illuminate\View\View;
  */
 class UserController extends Controller
 {
+    /** The list order, with the id as a tie-break so pages never overlap. */
+    private function ordered()
+    {
+        return User::orderBy('role')->orderBy('full_name')->orderBy('user_id');
+    }
+
     public function index(): View
     {
         return view('admin.users.index', [
-            'users' => User::orderBy('role')->orderBy('full_name')->get(),
+            'users' => $this->ordered()->paginate(config('crc.per_page'))->withQueryString(),
             'companies' => Company::where('is_active', 1)->orderBy('name')->get(),   // for the pop-up
         ]);
     }
@@ -64,8 +70,11 @@ class UserController extends Controller
             return $agent;
         });
 
-        // Back to the list (the pop-up's page) with the new row highlighted.
-        return redirect()->route('admin.users.index')
+        // Back to the list, on the page where the new row sits, with it highlighted.
+        $position = $this->ordered()->pluck('user_id')->search($agent->user_id);
+        $page = intdiv((int) $position, config('crc.per_page')) + 1;
+
+        return redirect()->route('admin.users.index', $page > 1 ? ['page' => $page] : [])
             ->with('status', "Agent {$data['full_name']} created.")
             ->with('highlight', $agent->user_id);
     }

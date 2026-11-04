@@ -25,8 +25,6 @@ use Illuminate\View\View;
  */
 class TicketController extends Controller
 {
-    private const PER_PAGE = 20;
-
     public function index(Request $request): View
     {
         $user = $request->user();
@@ -48,7 +46,7 @@ class TicketController extends Controller
             ->byPriority()
             ->orderBy('tickets.created_at')
             ->orderBy('tickets.ticket_id')
-            ->paginate(self::PER_PAGE)
+            ->paginate(config('crc.per_page'))
             ->withQueryString();
 
         return view('tickets.index', [
@@ -142,7 +140,7 @@ class TicketController extends Controller
         });
 
         // Back to the ticket list, on the page where the new ticket sits, highlighted.
-        $page = intdiv($this->ticketsBefore($ticket), self::PER_PAGE) + 1;
+        $page = intdiv($this->ticketsBefore($ticket), config('crc.per_page')) + 1;
 
         return redirect()->route('tickets.index', $page > 1 ? ['page' => $page] : [])
             ->with('status', "Ticket {$ticket->ticket_no} created.")

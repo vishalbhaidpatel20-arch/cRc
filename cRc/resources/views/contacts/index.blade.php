@@ -3,16 +3,20 @@
 @php($isAdmin = auth()->user()->isAdmin())
 @php($highlight = session('highlight'))
 
+@push('assets')
+@include('partials.grid-assets')
+@endpush
+
 @section('content')
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">Contacts</h2>
         @if($isAdmin)<a class="btn" id="new-contact-link" data-modal="contact-modal" href="{{ route('contacts.create') }}">+ New contact</a>@endif
     </div>
-    @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
+    @include('partials.flash')
 
     <form method="GET" class="filters">
-        <input name="q" value="{{ request('q') }}" placeholder="Search name, email, phone, position, company" style="flex:1;min-width:220px">
+        <input name="q" value="{{ request('q') }}" placeholder="Search" title="Search name, email, phone, position, company" autocomplete="off">
         <select name="company_id">
             <option value="">All companies</option>
             @foreach($companies as $c)
@@ -24,10 +28,12 @@
             <option value="inactive" @selected($status === 'inactive')>Inactive</option>
             <option value="all" @selected($status === 'all')>All</option>
         </select>
-        <button class="btn" type="submit">Search</button>
+        <noscript><button class="btn" type="submit">Search</button></noscript>
     </form>
 
-    <table class="list">
+<div data-region="results">
+    <x-grid-skeleton :total="$contacts->count()" />
+    <table class="list" data-grid>
         <tr><th>Name</th><th>Company</th><th>Position</th><th>Phone</th><th>Email</th><th>Last contacted</th><th>Status</th></tr>
         @forelse($contacts as $ct)
             <tr @class(['row-new' => $highlight === $ct->contact_id]) id="contact-{{ $ct->contact_id }}">
@@ -43,7 +49,8 @@
             <tr><td colspan="7" class="muted">No contacts found.</td></tr>
         @endforelse
     </table>
-    <div style="margin-top:1rem">{{ $contacts->links('partials.pager') }}</div>
+    {{ $contacts->links('partials.pager') }}
+</div>
 </div>
 
 @if($isAdmin)

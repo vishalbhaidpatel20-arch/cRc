@@ -4,10 +4,10 @@
 @php($prefers = trim(\App\Models\Interaction::channelLabel($contact->preferred_channel).($contact->profile?->preferred_time ? ', '.$contact->profile->preferred_time : '')))
 
 @section('content')
-@if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
+@include('partials.flash')
 <div class="card">
     <div class="contact-grid">
-        <aside>
+        <aside data-region="contact-side">
             <div style="display:flex;gap:.9rem;align-items:center">
                 <div class="avatar">{{ $contact->initials() }}</div>
                 <div style="min-width:0">
@@ -50,6 +50,7 @@
         </aside>
 
         <section>
+            <div data-region="log">
             @if($contact->is_active)
                 @include('partials.conversation-panel', [
                     'action' => route('contacts.interactions.store', $contact),
@@ -57,7 +58,9 @@
                     'ticketChoices' => $linkableTickets,
                 ])
             @endif
+            </div>
 
+            <div data-region="conversations">
             <div class="hist-head" id="conversations">
                 <h3>Conversation history</h3>
                 <span class="muted">{{ $interactionCount }} {{ \Illuminate\Support\Str::plural('conversation', $interactionCount) }}</span>
@@ -66,6 +69,7 @@
             @if($interactionCount > $interactions->count())
                 <p style="margin-top:.8rem"><a href="{{ route('interactions.index', ['contact_id' => $contact->contact_id]) }}">See all {{ $interactionCount }} conversations with {{ $contact->full_name }}</a></p>
             @endif
+            </div>
         </section>
     </div>
 </div>

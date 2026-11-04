@@ -130,8 +130,8 @@ class CompanyModalTest extends TestCase
         $this->assertStringContainsString('has already been taken', $html);
         $this->assertStringContainsString('value="Taken Name"', $html);
         $this->assertStringContainsString('value="Rajkot"', $html);
-        // The script that re-opens the dialog is only emitted for a failed pop-up submit.
-        $this->assertMatchesRegularExpression('/open\(\);\s*\/\/ the pop-up was submitted with mistakes/', $html);
+        // The dialog is only marked data-open (its script and partial.js then show it) for a failed pop-up submit.
+        $this->assertMatchesRegularExpression('/<dialog id="company-modal"[^>]*\bdata-open\b/', $html);
         $this->assertDatabaseCount('companies', 1);
     }
 

@@ -259,23 +259,22 @@ These are single-feature tests in `tests/Feature/`. They use the same rules as s
 
 Loaded from `database/sql/03_seed.sql` after `php artisan migrate`. Not used by the automated tests.
 
-| User | Role | Notes |
-|---|---|---|
-| `anita@support.example` | admin | password `password` |
-| `rahul@support.example` | agent | password `password`, all companies |
-| `priya@support.example` | agent | password `password`, only Acme + Bluewave |
-| `karan@support.example` | agent | no password yet (invited): login must fail |
-| `vishal@example.com` | admin | created by hand in `crc`; password is kept by the owner, **not recorded here** |
+The dataset has exactly **20 rows in every business table** (users, companies, product modules, contacts, contact
+profiles, contact-module tags, user-company grants, tickets, ticket assignments, ticket comments, conversations,
+follow-ups, message templates, notifications). All sample users have the password `password`.
 
-| Companies | Contacts (count) |
+| Users | Notes |
 |---|---|
-| CMP001 Acme Traders | 3 |
-| CMP002 Bluewave Foods | 2 |
-| CMP003 Crescent Textiles | 2 |
-| CMP004 Delta Logistics | 2 (company has no tickets) |
+| `anita@support.example` | admin (assigns tickets in the seed data) |
+| `rahul@support.example`, `priya@...`, `karan@...` and 15 more agents (`<firstname>@support.example`) | agents; 4 of them are restricted to 5 companies each (see `user_companies`), 1 is deactivated, 1 has no password yet (invited): login must fail |
+| `vishal@example.com` | admin created by hand in `crc` (not in the seed file); password kept by the owner, **not recorded here** |
 
-Also seeded: 8 tickets, assignments, comments, 10 interactions, 7 follow-ups, 4 message templates and
-2 modules ("Module 1", "Module 2"). Dates are relative to the day the seed was loaded.
+In `crc` the live data is the seed minus the last agent (so 2 admins + 18 agents = 20 users). Companies are
+CMP001 Acme Traders ... CMP020 Trident Printing, one main contact each (contact N belongs to company N) and one
+ticket each (TKT-0001 ... TKT-0020). Tickets 17 to 20 are unassigned and open, 7 and 14 are resolved, tickets 3, 6, 9
+and 12 were reassigned once (that is why there are 20 assignment rows for 16 assigned tickets). Each assignment has
+one in-app notification. Templates are 10 names in both email and WhatsApp. Dates are relative to the day the seed
+was loaded, so "today" and "overdue" always have rows.
 
 Rebuild the dev data from scratch: run `database/sql/00_reset.sql`, then `php artisan migrate`,
 then load `database/sql/03_seed.sql`. This deletes any records entered by hand.
@@ -292,7 +291,7 @@ then load `database/sql/03_seed.sql`. This deletes any records entered by hand.
 
 ## 6. Test case index
 
-Suite total: **442 tests** = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 19 E2E.
+Suite total: **461 tests** = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 19 PartialRefreshTest + 19 E2E.
 Per-test names for the earlier feature tests: `php artisan test tests/Feature --testdox`.
 
 ### Unit test classes (227)
@@ -360,3 +359,8 @@ Names: `php artisan test tests/Feature --testdox`.
 
 ### Pop-up forms (50)
 `CompanyModalTest` (16) and `PopupFormsTest` (34): every "create" opens a pop-up on the list page you are on (companies, agents, contacts, tickets, templates) and an edit pop-up on the detail page (company, contact, ticket) or per row (templates). They check: the dialog and its fields are on the page (admins only, tickets also for agents), a successful save redirects back to the list with the new row highlighted and a flash message, the new row lands on the right page of a paginated list (companies and contacts by name, tickets by priority then age, ignoring resolved and other agents' tickets), a failed submit reopens only the pop-up that was submitted with the typed values and errors, `?new=1&company_id=` / `contact_id=` opens a pre-filled pop-up, no leak between several pop-ups on one page, and the stand-alone create/edit pages still work without JavaScript.
+
+
+### PartialRefreshTest (partial page refresh and data grid, auto search, pagination, footer, no table flash, all tables; 19 tests)
+
+`public/js/partial.js` sends forms and same-page links with `fetch()` and swaps only the `data-region` areas that changed. The tests cover the server side of that contract: the layout loads the script; logout and login forms carry `data-no-ajax`; every list page has a `results` area and a `flash` area; the admin dashboard has `cards`, `queue` and `workload`; the flash message arrives inside the flash area; a failed pop-up submit (followed through the redirect, like `fetch`) returns the dialog marked `data-open` with its errors, and a normal visit does not; `?new=1` marks the create pop-up open; the contact page keeps its `contact-side`, `log` and `conversations` areas even for an inactive contact. Links to other pages load in place too (only `<main>` is swapped, Back/Forward included). The list tables (companies, contacts, tickets, users, templates, conversations) carry `data-grid` (`<th data-flex="3">` asks for a wider column) and stay as plain tables without JavaScript; `resources/js/grid.jsx` (AG Grid, React) turns them into full-width sortable grids and re-mounts them when `partial.js` fires `partial:updated`. Filter bars have no Search/Filter button (it stays inside `<noscript>`), the search box is 250px wide, and `partial.js` applies the filters as you type (300 ms pause) or change a field. Each grid fills the window height and pages on screen with AG Grid's own pager (rows per page fit the screen and stretch to fill the box, so the grid and its pager are fully visible without scrolling); the server sends up to `config('crc.per_page')` rows (200; tests set 20) and only shows its Previous/Next bar when a list has more rows than that. Every page has a footer, below the fold (visible when you scroll down) (20 per page; users and templates included, and a newly created agent or template redirects to the page where it sits). No flash of the unpaginated table: each grid has a same-height placeholder (`grid-skeleton`, sized by `public/js/grid-size.js`), the raw table is hidden by CSS when JavaScript is on, the grid code is requested from `<head>` (second Vite entry `resources/js/grid.jsx`, pushed only on grid pages), and the grid mounts inside the placeholder. Every data table is a grid: the lists above, a company's contacts (full size, all of them), the Modules page, and small embedded grids with a fixed page size (`data-page-size`) for the dashboard cards (unassigned queue, workload, agent "Next up") and a ticket's assignment history. A ticket's key/value details table stays plain. The browser behaviour itself is checked by hand.

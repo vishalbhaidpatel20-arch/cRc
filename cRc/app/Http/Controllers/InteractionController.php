@@ -42,7 +42,7 @@ class InteractionController extends Controller
             ->when($to, fn ($q) => $q->where('interactions.interaction_at', '<=', $to->endOfDay()))
             ->orderByDesc('interactions.interaction_at')
             ->orderByDesc('interactions.interaction_id')
-            ->paginate(20)
+            ->paginate(config('crc.per_page'))
             ->withQueryString();
 
         return view('interactions.index', [

@@ -1,8 +1,12 @@
 @extends('layouts.app')
 @section('title', 'Agent dashboard')
 
+@push('assets')
+@include('partials.grid-assets')
+@endpush
+
 @section('content')
-<div class="card">
+<div class="card" data-region="board">
     <h2 style="margin-top:0">Agent dashboard</h2>
     <p>Welcome, {{ auth()->user()->full_name }}. You have <strong>{{ $openCount }}</strong> open {{ Str::plural('ticket', $openCount) }}.</p>
 
@@ -51,7 +55,9 @@
     @endif
 
     <h3>Next up</h3>
-    <table class="list">
+    <x-grid-skeleton :total="$topTickets->count()" :page-size="5" />
+    <table class="list" data-grid data-page-size="5">
+        <tr><th>No</th><th data-flex="3">Title</th><th>Company</th><th>Priority</th></tr>
         @forelse($topTickets as $t)
             <tr>
                 <td><a href="{{ route('tickets.show', $t) }}">{{ $t->ticket_no }}</a></td>

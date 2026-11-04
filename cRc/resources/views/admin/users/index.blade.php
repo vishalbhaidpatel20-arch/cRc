@@ -2,15 +2,21 @@
 @section('title', 'Users')
 @php($highlight = session('highlight'))
 
+@push('assets')
+@include('partials.grid-assets')
+@endpush
+
 @section('content')
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">Users</h2>
         <a class="btn" id="new-user-link" data-modal="user-modal" href="{{ route('admin.users.create') }}">+ New agent</a>
     </div>
-    @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
+    @include('partials.flash')
 
-    <table class="list">
+<div data-region="results">
+    <x-grid-skeleton :total="$users->count()" />
+    <table class="list" data-grid>
         <tr><th>Name</th><th>Email</th><th>Role</th><th>Companies</th><th>Status</th></tr>
         @foreach($users as $u)
             <tr @class(['row-new' => $highlight === $u->user_id]) id="user-{{ $u->user_id }}">
@@ -22,6 +28,8 @@
             </tr>
         @endforeach
     </table>
+    {{ $users->links('partials.pager') }}
+</div>
 </div>
 
 <x-modal id="user-modal" marker="user" title="New agent" :action="route('admin.users.store')" submit="Create agent"

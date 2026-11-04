@@ -3,13 +3,17 @@
 @php($highlight = session('highlight'))
 @section('title', 'Templates')
 
+@push('assets')
+@include('partials.grid-assets')
+@endpush
+
 @section('content')
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">Message templates</h2>
         @if($isAdmin)<a class="btn" id="new-template-link" data-modal="template-modal" href="{{ route('templates.create') }}">+ New template</a>@endif
     </div>
-    @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
+    @include('partials.flash')
     <p class="muted">Pick a template while logging a conversation on a ticket or contact page. Placeholders:
         @foreach(\App\Models\MessageTemplate::PLACEHOLDERS as $key => $desc)<code title="{{ $desc }}">{{ \App\Models\MessageTemplate::token($key) }}</code> @endforeach</p>
 
@@ -29,10 +33,12 @@
                 <option value="all" @selected($status === 'all')>All</option>
             </select>
         @endif
-        <button class="btn" type="submit">Filter</button>
+        <noscript><button class="btn" type="submit">Filter</button></noscript>
     </form>
 
-    <table class="list">
+    <div data-region="results">
+    <x-grid-skeleton :total="$templates->count()" />
+    <table class="list" data-grid>
         <tr><th>Name</th><th>Category</th><th>Channel</th><th>Message</th>@if($isAdmin)<th>Status</th><th></th>@endif</tr>
         @forelse($templates as $t)
             <tr @class(['row-new' => $highlight === $t->template_id]) id="template-{{ $t->template_id }}">
@@ -55,6 +61,16 @@
             <tr><td colspan="{{ $isAdmin ? 6 : 4 }}" class="muted">No templates found.</td></tr>
         @endforelse
     </table>
+
+    @if($isAdmin)
+        @foreach($templates as $t)
+            <x-modal :id="'template-edit-'.$t->template_id" :marker="'template-edit-'.$t->template_id" :title="'Edit template'" :action="route('templates.update', $t)" method="PUT" submit="Save changes" wide>
+                @include('templates._fields', ['template' => $t, 'scope' => 'template-edit-'.$t->template_id])
+            </x-modal>
+        @endforeach
+    @endif
+    {{ $templates->links('partials.pager') }}
+    </div>
 </div>
 
 @if($isAdmin)
@@ -63,11 +79,5 @@
              :open="request()->boolean('new')">
         @include('templates._fields', ['template' => new \App\Models\MessageTemplate(['category' => 'general', 'channel' => 'email']), 'scope' => 'template-new'])
     </x-modal>
-
-    @foreach($templates as $t)
-        <x-modal :id="'template-edit-'.$t->template_id" :marker="'template-edit-'.$t->template_id" :title="'Edit template'" :action="route('templates.update', $t)" method="PUT" submit="Save changes" wide>
-            @include('templates._fields', ['template' => $t, 'scope' => 'template-edit-'.$t->template_id])
-        </x-modal>
-    @endforeach
 @endif
 @endsection

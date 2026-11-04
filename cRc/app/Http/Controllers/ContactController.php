@@ -21,8 +21,6 @@ use Illuminate\View\View;
  */
 class ContactController extends Controller
 {
-    private const PER_PAGE = 20;
-
     public function index(Request $request): View
     {
         $status = $request->query('status', 'active');
@@ -34,7 +32,7 @@ class ContactController extends Controller
             ->when($status === 'active', fn ($q) => $q->where('contacts.is_active', 1))
             ->when($status === 'inactive', fn ($q) => $q->where('contacts.is_active', 0))
             ->orderBy('full_name')
-            ->paginate(self::PER_PAGE)
+            ->paginate(config('crc.per_page'))
             ->withQueryString();
 
         // Blank contact for the "New contact" pop-up; ?new=1&company_id=3 pre-selects the company.
@@ -86,7 +84,7 @@ class ContactController extends Controller
 
         // Back to the contacts list, on the page where the new contact sits (ordered by name), highlighted.
         $before = Contact::where('is_active', 1)->where('full_name', '<', $contact->full_name)->count();
-        $page = intdiv($before, self::PER_PAGE) + 1;
+        $page = intdiv($before, config('crc.per_page')) + 1;
 
         return redirect()->route('contacts.index', $page > 1 ? ['page' => $page] : [])
             ->with('status', "Contact {$contact->full_name} created.")

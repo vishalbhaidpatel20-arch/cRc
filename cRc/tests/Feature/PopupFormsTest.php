@@ -19,7 +19,7 @@ class PopupFormsTest extends TestCase
 {
     use RefreshDatabase;
 
-    private const REOPENS = '/open\(\);\s*\/\/ the pop-up was submitted/';
+    private const REOPENS = '/<dialog [^>]*\bdata-open\b/';
 
     private User $admin;
 
@@ -359,7 +359,7 @@ class PopupFormsTest extends TestCase
         ]);
 
         $html = $this->get(route('templates.index'))->getContent();
-        $edit = substr($html, strpos($html, '<dialog id="template-edit-'.$a->template_id));
+        $edit = substr($html, $start = strpos($html, '<dialog id="template-edit-'.$a->template_id), strpos($html, '</dialog>', $start) - $start);
 
         $this->assertStringContainsString('value="Typed new one"', $html);
         $this->assertStringNotContainsString('Typed new one', $edit, "the edit pop-up must not pick up the new template's typed values");

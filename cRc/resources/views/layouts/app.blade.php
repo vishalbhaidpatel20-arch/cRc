@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/crc-badge.svg') }}">
     <style>
         *{box-sizing:border-box}
-        body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f4f6f8;color:#1f2933}
+        body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f4f6f8;color:#1f2933;min-height:100vh;display:flex;flex-direction:column}
         header{background:#fff;color:#1F1A5C;padding:0 1.5rem;height:65px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #5B4BDB}
         header .who{font-size:.9rem}
         .logo{height:48px;width:48px;display:block}
@@ -16,7 +16,14 @@
         nav{display:flex;align-items:center}
         .badge{background:#ece9ff;color:#1F1A5C;border-radius:999px;padding:.1rem .6rem;margin-left:.4rem;font-size:.75rem;text-transform:uppercase}
         header button{background:transparent;color:#1F1A5C;border:1px solid #1F1A5C;border-radius:6px;padding:.3rem .8rem;cursor:pointer}
-        main{max-width:960px;margin:2rem auto;padding:0 1rem}
+        main{width:100%;max-width:960px;margin:2rem auto;padding:0 1rem;flex:1 0 auto}
+        /* Signed-in pages: the content fills the first screen, so the footer starts below the fold and shows only when you scroll */
+        body:has(header) main{min-height:calc(100vh - 65px - 4rem)}
+        footer.site{flex:0 0 auto;background:#fff;border-top:1px solid #e5e5ea;padding:.7rem 1.5rem;font-size:.85rem;color:#7b8794;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+        /* Pages with a data grid, and the dashboards, use the full width of the window */
+        main:has(.grid-skeleton:not([data-page-size])),main:has(table[data-grid]:not([data-page-size])),main:has(.grid-host:not([data-page-size])),main:has([data-region=cards]),main:has([data-region=board]){max-width:none;padding:0 1.5rem}
+        .grid-host{width:100%;margin-top:1rem;--ag-font-size:14px}
+        .grid-host .row-new{background:#f0fbf4}
         .card{background:#fff;border-radius:10px;padding:1.5rem;box-shadow:0 1px 3px #0001}
         .error{color:#b42318;font-size:.85rem;margin-top:.3rem}
         nav a{color:#1F1A5C;margin-left:1.2rem;text-decoration:none;font-weight:500}
@@ -30,6 +37,7 @@
         .filters{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
         .filters input,.filters select,.f input,.f select{padding:.5rem;border:1px solid #cbd2d9;border-radius:6px}
         .f input,.f select{width:100%;margin:.3rem 0 .6rem}
+        .filters input[name=q]{width:250px}
         .btn{display:inline-block;padding:.5rem 1rem;background:#1F1A5C;color:#fff;border:0;border-radius:6px;cursor:pointer;text-decoration:none;font-size:.9rem}
         .btn.light{background:#e4e7eb;color:#1f2933}
         .tag{font-size:.75rem;background:#e4e7eb;border-radius:999px;padding:.1rem .5rem}
@@ -90,7 +98,23 @@
         .bar{display:flex;height:14px;border-radius:7px;overflow:hidden;background:#eef0f3;min-width:14px}
         .bar span{display:block;min-width:4px}
         .hist-tags{display:flex;gap:.4rem;flex-wrap:wrap;align-items:center;margin-top:.4rem}
+        /* Data grid placeholder (js/grid-size.js marks <html class="js"> before the first paint): the plain table is never shown
+           while the grid loads, so the unpaginated rows cannot flash. Without JavaScript the table shows instead. */
+        html.js .grid-skeleton ~ table[data-grid]{display:none}
+        html:not(.js) .grid-skeleton{display:none}
+        .grid-skeleton{width:100%;margin-top:1rem;border:1px solid #dde1e6;border-radius:8px;background:#fff;overflow:hidden}
+        .grid-skeleton .gs-head{height:49px;background:#f8f9fb;border-bottom:1px solid #dde1e6}
+        .grid-skeleton .gs-row{height:56px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;padding:0 16px}
+        .grid-skeleton .gs-row span{display:block;width:60%;height:10px;border-radius:5px;background:#eef0f3}
+        /* While a partial refresh is in flight (js/partial.js) */
+        html.ajax-busy,html.ajax-busy *{cursor:progress}
+        html.ajax-busy [data-region]{opacity:.7;transition:opacity .15s}
     </style>
+@if(file_exists(public_path('hot')) || file_exists(public_path('build/manifest.json')))
+    <script src="{{ asset('js/grid-size.js') }}"></script>
+    @vite(['resources/js/app.js'])
+@endif
+@stack('assets')
 </head>
 <body>
 @auth
@@ -107,7 +131,7 @@
                 <a href="{{ route('admin.users.index') }}">Users</a>
             @endif
         </nav>
-        <form method="POST" action="{{ route('logout') }}" class="who">
+        <form method="POST" action="{{ route('logout') }}" class="who" data-no-ajax>
             @csrf
             {{ auth()->user()->full_name }}<span class="badge">{{ auth()->user()->role }}</span>
             <button type="submit">Log out</button>
@@ -115,5 +139,10 @@
     </header>
 @endauth
 <main>@yield('content')</main>
+<footer class="site">
+    <span>cRc &middot; Customer Relationship Console</span>
+    <span>&copy; {{ date('Y') }} Client Support Desk. For internal use only.</span>
+</footer>
+<script src="{{ asset('js/partial.js') }}" defer></script>
 </body>
 </html>

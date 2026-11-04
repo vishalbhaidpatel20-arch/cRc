@@ -3,16 +3,20 @@
 @php($highlight = session('highlight'))
 @section('title', $isAdmin ? 'Tickets' : 'My tickets')
 
+@push('assets')
+@include('partials.grid-assets')
+@endpush
+
 @section('content')
 <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center">
         <h2 style="margin:0">{{ $isAdmin ? 'Tickets' : 'My tickets' }}</h2>
         <a class="btn" id="new-ticket-link" data-modal="ticket-modal" href="{{ route('tickets.create') }}">+ New ticket</a>
     </div>
-    @if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
+    @include('partials.flash')
 
     <form method="GET" class="filters">
-        <input name="q" value="{{ request('q') }}" placeholder="Search ticket no, title, description" style="flex:1;min-width:220px">
+        <input name="q" value="{{ request('q') }}" placeholder="Search" title="Search ticket no, title, description" autocomplete="off">
         <select name="status">
             <option value="open" @selected($status === 'open')>Not resolved</option>
             @foreach(\App\Models\Ticket::STATUSES as $s)
@@ -42,10 +46,12 @@
             </select>
         @endif
         <label style="align-self:center"><input type="checkbox" name="overdue" value="1" @checked(request()->boolean('overdue'))> Overdue only</label>
-        <button class="btn" type="submit">Filter</button>
+        <noscript><button class="btn" type="submit">Filter</button></noscript>
     </form>
 
-    <table class="list">
+<div data-region="results">
+    <x-grid-skeleton :total="$tickets->count()" />
+    <table class="list" data-grid>
         <tr><th>No</th><th>Title</th><th>Company / contact</th><th>Type</th><th>Priority</th><th>Status</th>
             @if($isAdmin)<th>Assigned to</th>@endif<th>Due</th></tr>
         @forelse($tickets as $t)
@@ -63,7 +69,8 @@
             <tr><td colspan="{{ $isAdmin ? 8 : 7 }}" class="muted">No tickets found.</td></tr>
         @endforelse
     </table>
-    <div style="margin-top:1rem">{{ $tickets->links('partials.pager') }}</div>
+    {{ $tickets->links('partials.pager') }}
+</div>
 </div>
 
 <x-modal id="ticket-modal" marker="ticket" title="New ticket" :action="route('tickets.store')" submit="Create ticket" wide

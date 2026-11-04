@@ -3,14 +3,17 @@
 
 @php($colors = ['critical' => '#d94b4b', 'high' => '#f0a23b', 'medium' => '#5b8def', 'low' => '#b5bcc6'])
 
+@push('assets')
+@include('partials.grid-assets')
+@endpush
+
 @section('content')
-@if(session('status'))<div class="flash">{{ session('status') }}</div>@endif
-@error('assigned_to')<div class="error" style="margin-bottom:.6rem">{{ $message }}</div>@enderror
+@include('partials.flash')
 
 <h2 style="margin:0 0 .2rem">Admin dashboard</h2>
 <p class="muted" style="margin:0 0 1rem">Welcome, {{ auth()->user()->full_name }}. Assign the queue and keep the team's load balanced.</p>
 
-<div class="stat-grid">
+<div class="stat-grid" data-region="cards">
     <a class="stat" href="{{ route('tickets.index') }}"><span class="stat-n">{{ $cards['open'] }}</span><span class="muted">Open tickets</span></a>
     <a class="stat {{ $cards['unassigned'] > 0 ? 'warn' : '' }}" href="{{ route('tickets.index', ['assigned' => 'unassigned']) }}"><span class="stat-n">{{ $cards['unassigned'] }}</span><span class="muted">Unassigned</span></a>
     <a class="stat {{ $cards['critical'] > 0 ? 'bad' : '' }}" href="{{ route('tickets.index', ['priority' => 'critical']) }}"><span class="stat-n">{{ $cards['critical'] }}</span><span class="muted">Critical open</span></a>
@@ -19,12 +22,15 @@
     <div class="stat {{ $cards['followups_overdue'] > 0 ? 'warn' : '' }}"><span class="stat-n">{{ $cards['followups_overdue'] }}</span><span class="muted">Follow-ups overdue</span></div>
 </div>
 
-<div class="card" style="margin-top:1rem">
+<div class="card" style="margin-top:1rem" data-region="queue">
+    @error('assigned_to')<div class="error" style="margin-bottom:.6rem">{{ $message }}</div>@enderror
     <div class="hist-top" style="align-items:baseline">
         <h3 style="margin:0">Unassigned queue</h3>
         <span class="muted">{{ $queueTotal }} {{ \Illuminate\Support\Str::plural('ticket', $queueTotal) }} waiting</span>
     </div>
-    <table class="list">
+    <x-grid-skeleton :total="$queue->count()" :page-size="5" />
+    <table class="list" data-grid data-page-size="5">
+        <tr><th>Ticket</th><th data-flex="3">Title</th><th>Priority</th><th>Due</th><th data-nosort data-flex="2">Assign</th></tr>
         @forelse($queue as $t)
             <tr>
                 <td style="white-space:nowrap"><a href="{{ route('tickets.show', $t) }}">{{ $t->ticket_no }}</a></td>
@@ -54,15 +60,16 @@
     @endif
 </div>
 
-<div class="card" style="margin-top:1rem">
+<div class="card" style="margin-top:1rem" data-region="workload">
     <div class="hist-top" style="align-items:baseline">
         <h3 style="margin:0">Workload per agent</h3>
         <span class="muted" style="font-size:.85rem">
             @foreach($colors as $p => $c)<span style="display:inline-block;width:.7rem;height:.7rem;background:{{ $c }};border-radius:2px;margin-left:.6rem"></span> {{ $p }}@endforeach
         </span>
     </div>
-    <table class="list">
-        <tr><th>Agent</th><th style="width:40%">Open tickets by priority</th><th>Total</th><th>Overdue</th><th></th></tr>
+    <x-grid-skeleton :total="$workload->count()" :page-size="8" />
+    <table class="list" data-grid data-page-size="8">
+        <tr><th>Agent</th><th data-flex="3" data-nosort>Open tickets by priority</th><th>Total</th><th>Overdue</th><th></th></tr>
         @forelse($workload as $a)
             <tr>
                 <td>{{ $a->full_name }} @unless($a->is_active)<span class="pill late">Deactivated</span>@endunless</td>

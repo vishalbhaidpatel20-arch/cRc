@@ -6,7 +6,7 @@
     <img src="{{ asset('images/crc-logo.svg') }}" alt="cRc, Customer Relationship Console"
          style="display:block;width:250px;max-width:100%;margin:0 auto 1rem">
     <h2 style="margin-top:0">Log in</h2>
-    <form method="POST" action="{{ url('/login') }}">
+    <form method="POST" action="{{ url('/login') }}" data-no-ajax>
         @csrf
         <label for="email">Email</label>
         <input id="email" name="email" type="email" value="{{ old('email') }}" required autofocus
