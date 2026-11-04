@@ -9,27 +9,36 @@
     <style>
         *{box-sizing:border-box}
         body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f4f6f8;color:#1f2933;min-height:100vh;display:flex;flex-direction:column}
-        header{background:#fff;color:#1F1A5C;padding:0 1.5rem;height:65px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #5B4BDB}
-        header .who{font-size:.9rem}
-        .logo{height:48px;width:48px;display:block}
+        header{background:linear-gradient(90deg,#0b1f4d 0%,#12307a 55%,#1F1A5C 100%);color:#1F1A5C;padding:0 1.5rem;height:65px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid;border-image:linear-gradient(90deg,#00b4d8,#2f80ed,#5B4BDB) 1}
+        header .who{font-size:.9rem;color:#fff}
+        .logo{height:48px;width:48px;display:block;border:2px solid #fff;border-radius:14px}
         nav a.brand{display:flex;align-items:center;margin-right:1.5rem}
         nav a.brand:hover{text-decoration:none}
         nav{display:flex;align-items:center}
-        .badge{background:#ece9ff;color:#1F1A5C;border-radius:999px;padding:.1rem .6rem;margin-left:.4rem;font-size:.75rem;text-transform:uppercase}
-        header button{background:transparent;color:#1F1A5C;border:1px solid #1F1A5C;border-radius:6px;padding:.3rem .8rem;cursor:pointer}
+        .badge{background:#2f80ed;color:#fff;border-radius:999px;padding:.1rem .6rem;margin-left:.4rem;font-size:.75rem;text-transform:uppercase}
+        header .who button{background:transparent;color:#fff;border:1px solid #6aa7ff;border-radius:6px;padding:.3rem .8rem;cursor:pointer}
         main{width:100%;max-width:960px;margin:2rem auto;padding:0 1rem;flex:1 0 auto}
         /* Signed-in pages: the content fills the first screen, so the footer starts below the fold and shows only when you scroll */
         body:has(header) main{min-height:calc(100vh - 65px - 4rem)}
-        footer.site{flex:0 0 auto;background:#fff;border-top:1px solid #e5e5ea;padding:.7rem 1.5rem;font-size:.85rem;color:#7b8794;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+        footer.site{flex:0 0 auto;background:linear-gradient(90deg,#0b1f4d 0%,#12307a 55%,#1F1A5C 100%);color:#fff;border-top:3px solid;border-image:linear-gradient(90deg,#5B4BDB,#2f80ed,#00b4d8) 1;padding:1.2rem 1.5rem 1rem;font-size:.85rem}
+        footer.site .f-row{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;flex-wrap:wrap}
+        footer.site .f-brand{display:flex;align-items:center;gap:.9rem}
+        footer.site .f-brand img{width:48px;height:48px;display:block;border:2px solid #fff;border-radius:14px}
+        footer.site .f-name{color:#fff;font-weight:700;font-size:1.05rem}
+        footer.site .f-tag{color:#9dc2ff;font-size:.8rem;margin-top:.1rem}
+        footer.site .f-copy{margin-top:.9rem;padding-top:.8rem;border-top:1px solid #ffffff26;display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.8rem;color:#b7cdf5}
+        footer.site .f-copy .who-role{color:#fff;background:#2f80ed;border-radius:999px;padding:.1rem .6rem;font-size:.75rem;text-transform:uppercase}
         /* Pages with a data grid, and the dashboards, use the full width of the window */
         main:has(.grid-skeleton:not([data-page-size])),main:has(table[data-grid]:not([data-page-size])),main:has(.grid-host:not([data-page-size])),main:has(.dash-hero),main:has(.contact-grid){max-width:none;padding:0 1.5rem}
         .grid-host{width:100%;margin-top:1rem;--ag-font-size:14px}
         .grid-host .row-new{background:#f0fbf4}
         .card{background:#fff;border-radius:10px;padding:1.5rem;box-shadow:0 1px 3px #0001}
         .error{color:#b42318;font-size:.85rem;margin-top:.3rem}
-        nav a{color:#1F1A5C;margin-left:1.2rem;text-decoration:none;font-weight:500}
-        nav a:hover{color:#5B4BDB;text-decoration:underline}
-        nav a.brand{margin-left:0}
+        nav a{color:#fff;margin-left:1.2rem;text-decoration:none;font-weight:500;padding:.35rem .7rem;border-radius:8px;transition:background .15s,color .15s,box-shadow .15s}
+        nav a:hover{color:#fff;background:#ffffff26;text-decoration:none}
+        header .who button{transition:background .15s,color .15s,border-color .15s}
+        header .who button:hover{background:#ffffff26;color:#fff;border-color:#fff}
+        nav a.brand,nav a.brand:hover{margin-left:0;padding:0;background:none;box-shadow:none}
         table.list{width:100%;border-collapse:collapse;margin-top:1rem}
         table.list th{text-align:left;border-bottom:1px solid #cbd2d9;padding:.4rem}
         table.list td{border-bottom:1px solid #eee;padding:.4rem}
@@ -110,11 +119,11 @@
         /* Notification bell (partials/notification-bell.blade.php, js/notifications.js) */
         .hright{display:flex;align-items:center;gap:1rem}
         .bell{position:relative}
-        header .bell-btn{position:relative;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid #d5d8dd;border-radius:50%;background:#fff;color:#1F1A5C;padding:0;margin:0;text-decoration:none}
-        header .bell-btn:hover{background:#f3f0ff;text-decoration:none}
+        header .bell-btn{position:relative;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid #6aa7ff;border-radius:50%;background:transparent;color:#fff;padding:0;margin:0;text-decoration:none;transition:background .15s,color .15s,border-color .15s,box-shadow .15s}
+        header .bell-btn:hover{background:#ffffff26;color:#fff;border-color:#fff;text-decoration:none}
         .hright{gap:.6rem}
         .hright .who{margin-left:.5rem}
-        header .cal-btn.active{background:#ece9ff;border-color:#5B4BDB;color:#5B4BDB}
+        header .cal-btn.active{background:#ffffff33;border-color:#fff;color:#fff}
         .bell-count{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#d92d20;color:#fff;font-size:.7rem;font-weight:600;line-height:18px;text-align:center}
         .bell-count[hidden]{display:none}
         .bell-panel{position:absolute;right:0;top:calc(100% + 10px);width:380px;max-width:92vw;background:#fff;border:1px solid #e5e5ea;border-radius:12px;box-shadow:0 12px 40px #0003;z-index:60;overflow:hidden}
@@ -226,8 +235,21 @@
 @endauth
 <main>@yield('content')</main>
 <footer class="site">
-    <span>cRc &middot; Customer Relationship Console</span>
-    <span>&copy; {{ date('Y') }} Client Support Desk. For internal use only.</span>
+    <div class="f-row">
+        <div class="f-brand">
+            <img src="{{ asset('images/crc-badge.svg') }}" alt="cRc">
+            <div>
+                <div class="f-name">Customer Relationship Console</div>
+                <div class="f-tag">Every client, ticket and conversation in one place.</div>
+            </div>
+        </div>
+    </div>
+    <div class="f-copy">
+        <span>&copy; {{ date('Y') }} Client Support Desk. All rights reserved.</span>
+        @auth
+            <span>Signed in as <strong class="who-role">{{ ucfirst(auth()->user()->role) }}</strong> &middot; {{ \Illuminate\Support\Str::of(auth()->user()->full_name)->before(' ') }}</span>
+        @endauth
+    </div>
 </footer>
 <script src="{{ asset('js/partial.js') }}" defer></script>
 @auth
