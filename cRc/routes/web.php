@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ModuleController;
 use App\Http\Controllers\Admin\UserController;
@@ -90,6 +91,13 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/interactions', [InteractionController::class, 'index'])->name('interactions.index');
     Route::post('/tickets/{ticket}/interactions', [InteractionController::class, 'storeForTicket'])->name('tickets.interactions.store');
     Route::post('/contacts/{contact}/interactions', [InteractionController::class, 'storeForContact'])->name('contacts.interactions.store');
+
+    // Calendar: tickets by due date, follow-ups and the user's own plans (owner-only, enforced in the controller).
+    Route::get('/calendar', [CalendarController::class, 'index'])->name('calendar.index');
+    Route::post('/calendar/events', [CalendarController::class, 'store'])->name('calendar.events.store');
+    Route::put('/calendar/events/{event}', [CalendarController::class, 'update'])->name('calendar.events.update');
+    Route::patch('/calendar/events/{event}/done', [CalendarController::class, 'toggleDone'])->name('calendar.events.done');
+    Route::delete('/calendar/events/{event}', [CalendarController::class, 'destroy'])->name('calendar.events.destroy');
 
     Route::get('/follow-ups', [FollowUpController::class, 'index'])->name('follow-ups.index');
     Route::patch('/follow-ups/{followUp}/done', [FollowUpController::class, 'done'])->name('follow-ups.done');

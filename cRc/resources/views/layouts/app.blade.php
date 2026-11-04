@@ -112,6 +112,9 @@
         .bell{position:relative}
         header .bell-btn{position:relative;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid #d5d8dd;border-radius:50%;background:#fff;color:#1F1A5C;padding:0;margin:0;text-decoration:none}
         header .bell-btn:hover{background:#f3f0ff;text-decoration:none}
+        .hright{gap:.6rem}
+        .hright .who{margin-left:.5rem}
+        header .cal-btn.active{background:#ece9ff;border-color:#5B4BDB;color:#5B4BDB}
         .bell-count{position:absolute;top:-5px;right:-5px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#d92d20;color:#fff;font-size:.7rem;font-weight:600;line-height:18px;text-align:center}
         .bell-count[hidden]{display:none}
         .bell-panel{position:absolute;right:0;top:calc(100% + 10px);width:380px;max-width:92vw;background:#fff;border:1px solid #e5e5ea;border-radius:12px;box-shadow:0 12px 40px #0003;z-index:60;overflow:hidden}
@@ -130,7 +133,11 @@
         .bell-tag{align-self:start;font-size:.7rem;font-weight:600;border-radius:999px;padding:.1rem .55rem;background:#e4e7eb;color:#52606d;white-space:nowrap}
         .bell-tag.assigned{background:#dbe8ff;color:#1d4e9e}
         .bell-tag.completed{background:#cdeede;color:#0b5b3a}
-        .bell-toast{position:fixed;right:1.5rem;bottom:1.5rem;max-width:360px;background:#1F1A5C;color:#fff;padding:.8rem 1.1rem;border-radius:10px;box-shadow:0 10px 30px #0004;font-size:.9rem;z-index:70}
+        .bell-tag.reminder{background:#fff1d6;color:#8a5200}
+        .bell-toast{position:fixed;right:1.5rem;bottom:1.5rem;max-width:360px;background:#1F1A5C;color:#fff;padding:.8rem 1.1rem;border-radius:10px;box-shadow:0 10px 30px #0004;font-size:.9rem;z-index:70;text-decoration:none;display:block}
+        .bell-toast:hover{background:#2a2380}
+        .bell-toast.reminder{background:#8a5200;border-left:5px solid #f0a23b}
+        .bell-toast small{display:block;opacity:.8;margin-top:.15rem;font-size:.78rem}
         .bell-toast[hidden]{display:none}
         /* Dashboards: hero, stat cards, panels, breakdown bars (admin/dashboard, agent/dashboard) */
         .dash-hero{display:flex;justify-content:space-between;align-items:flex-end;gap:1rem 2rem;flex-wrap:wrap;margin:.2rem 0 1.4rem}
@@ -204,6 +211,10 @@
             @endif
         </nav>
         <div class="hright">
+            {{-- The calendar lives beside the bell as an icon (not in the text menu). --}}
+            <a class="bell-btn cal-btn {{ request()->routeIs('calendar.*') ? 'active' : '' }}" href="{{ route('calendar.index') }}" title="Calendar" aria-label="Calendar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><path d="M8 14h.01"/><path d="M12 14h.01"/><path d="M16 14h.01"/><path d="M8 18h.01"/><path d="M12 18h.01"/></svg>
+            </a>
             @include('partials.notification-bell')
             <form method="POST" action="{{ route('logout') }}" class="who" data-no-ajax>
                 @csrf

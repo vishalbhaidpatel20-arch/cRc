@@ -3,8 +3,10 @@
 namespace App\Support;
 
 use App\Models\Ticket;
+use App\Notifications\EventReminder;
 use App\Notifications\TicketAssigned;
 use App\Notifications\TicketCompleted;
+use Carbon\Carbon;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Pagination\AbstractPaginator;
 use Illuminate\Support\Collection;
@@ -55,6 +57,14 @@ class NotificationPresenter
                 'tag' => 'Completed',
                 'kind' => 'completed',
                 'visible' => $ticketVisible,
+            ],
+            EventReminder::class => [
+                'text' => 'Reminder: '.($d['title'] ?? 'your plan'),
+                // The stored start is UTC; "in 15 minutes" / "5 minutes ago" is true in everyone's clock.
+                'detail' => ! empty($d['all_day']) ? 'All day today' : (! empty($d['start_at']) ? ucfirst(Carbon::parse($d['start_at'])->diffForHumans()) : null),
+                'tag' => 'Reminder',
+                'kind' => 'reminder',
+                'visible' => true,
             ],
             default => ['text' => 'You have a new notification', 'detail' => null, 'tag' => 'Notice', 'kind' => 'other', 'visible' => true],
         };

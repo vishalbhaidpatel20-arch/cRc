@@ -268,3 +268,23 @@ CREATE TABLE notifications (
   PRIMARY KEY (id),
   KEY notifications_notifiable_type_notifiable_id_index (notifiable_type, notifiable_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 15. calendar_events (each user's own plans on the calendar; start_at is UTC) ------------------
+CREATE TABLE calendar_events (
+  event_id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id         INT UNSIGNED NOT NULL,
+  title           VARCHAR(150) NOT NULL,
+  notes           TEXT         NULL,
+  start_at        DATETIME     NOT NULL COMMENT 'UTC',
+  all_day         TINYINT(1)   NOT NULL DEFAULT 0,
+  remind_minutes  SMALLINT UNSIGNED NULL COMMENT 'minutes before start_at; NULL = no reminder',
+  reminded_at     DATETIME     NULL COMMENT 'set once the reminder notification was sent',
+  status          ENUM('planned','done') NOT NULL DEFAULT 'planned',
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (event_id),
+  KEY idx_ce_user_start (user_id, start_at),
+  KEY idx_ce_reminders (status, reminded_at, start_at),
+  CONSTRAINT fk_ce_user FOREIGN KEY (user_id)
+    REFERENCES users (user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+

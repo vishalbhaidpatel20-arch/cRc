@@ -21,4 +21,4 @@
         <a class="bell-foot" href="{{ route('notifications.index') }}">See all notifications</a>
     </div>
 </div>
-<div class="bell-toast" data-bell-toast role="status" aria-live="polite" hidden></div>
+<a class="bell-toast" data-bell-toast href="{{ route('notifications.index') }}" role="status" aria-live="polite" hidden></a>

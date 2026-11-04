@@ -255,6 +255,20 @@ These are single-feature tests in `tests/Feature/`. They use the same rules as s
 | Template | placeholders `name`, `company`, `ticket_no`, `ticket_title`, `agent_name`; `token('name')` is `{{name}}` |
 | Notification | ticket `TKT-N0001`, title `Printer on fire`, priority `high`, assigned by `Ada Admin`, reason `Urgent` / `Covering for Bob` / null; channel is `database` only, `read_at` null |
 
+### CalendarTest (calendar and plan reminders; 20 tests)
+
+`GET /calendar` (an icon next to the bell in the header, for admins and agents; it is no longer in the text menu): a Monday-first month grid with tickets by due date (overdue red,
+due amber; resolved and undated ones left out; agents only their own tickets), the user's follow-ups and their own plans, plus a day agenda and an
+"Overdue now" list; bad `month` / `day` values fall back safely. Plans (`calendar_events`, owner-only: others get 404 on update/done/delete and never
+see them, admins included): created with a title, date, optional time or all day, a reminder (none, at the time, 5/10/15/30 min, 1/2 hours, 1 day
+before) and notes; the form is validated and a failed submit reopens the pop-up with its errors. Times are stored in UTC and shown in the viewer's
+timezone (cookie `crc_tz`, hidden `tz` field; aliases such as `Asia/Calcutta` work, an unknown zone falls back to UTC and never blocks saving).
+Reminders (`EventReminders`): sent once as a notification when start minus the reminder has passed, only to the owner, never for done plans or plans
+without a reminder, stale ones (more than 6 hours past) stay quiet, scheduling something already past does not fire, editing only the title does not
+re-send but moving the plan re-arms it. The bell poll and the notifications page trigger it for the signed-in user, and the scheduled command
+`crc:send-reminders` (every minute) covers everyone. The feed returns the pop-up details (kind, url, age), and opening a reminder goes to that day in
+the user's own clock (or to the calendar with a note if the plan is gone). The look of the grid and the amber toast are checked by hand in the browser.
+
 ### FollowUpListTest (Follow-ups page; 9 tests)
 
 `GET /follow-ups` (menu link "Follow-ups", and the dashboard cards: admin "Follow-ups overdue" -> `?filter=overdue`, agent "Follow-ups due" -> `?filter=due`).
@@ -318,7 +332,7 @@ then load `database/sql/03_seed.sql`. This deletes any records entered by hand.
 
 ## 6. Test case index
 
-Suite total: **496 tests** (includes 9 FollowUpListTest, 13 NotificationTest and 8 DashboardDesignTest) = 18 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 20 PartialRefreshTest + 19 E2E.
+Suite total: **516 tests** (includes 20 CalendarTest, 9 FollowUpListTest, 13 NotificationTest and 8 DashboardDesignTest) = 18 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 20 PartialRefreshTest + 19 E2E.
 Per-test names for the earlier feature tests: `php artisan test tests/Feature --testdox`.
 
 ### Unit test classes (227)

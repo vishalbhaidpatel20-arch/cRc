@@ -103,6 +103,18 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   "Welcome back" form on the right (icon fields, show/hide password toggle, red invalid state, gradient button, "no public sign-up" note). The
   form keeps `data-no-ajax`. Its page CSS is pushed to `<head>` with `@push('assets')`; the small-screen `@media` rule must stay LAST so it
   overrides the base rules (the brand panel hides under 900px).
+- Calendar (`CalendarController`, `/calendar`, a calendar icon beside the bell in the header, for everyone): a month grid of tickets by due date
+  (overdue red; agents only their own via the Ticket scope), the user's own follow-ups and PRIVATE plans (`calendar_events`: title, notes, `start_at`
+  in UTC, all-day, `remind_minutes`, `reminded_at`, status; every query and change goes through the signed-in user, others get 404, admins included).
+  Regions: `cal-stats`, `cal-main` (grid), `cal-agenda` (selected day, one edit pop-up per plan), `cal-overdue`. The server runs in UTC:
+  `App\Support\UserTime` reads the browser's zone from the `crc_tz` cookie or the hidden `tz` field (written by `public/js/notifications.js`; the cookie
+  is excluded from encryption in `bootstrap/app.php`; aliases like `Asia/Calcutta` are accepted, an unknown zone falls back to UTC and never blocks saving).
+  Reminders: `App\Services\EventReminders::sendDue()` sends one `EventReminder` notification per plan when start minus `remind_minutes` has passed
+  (claimed with `UPDATE ... WHERE reminded_at IS NULL`, so never twice; stale ones are marked quietly). It runs from the bell poll
+  (`GET /notifications/feed`, every 20 s) and `/notifications`, and from `php artisan crc:send-reminders` (scheduled every minute in
+  `routes/console.php`; on the server add the cron line `* * * * * php artisan schedule:run` so people who are not in the app are reminded too). The feed gives
+  the toast its kind, url and age: a reminder toast is amber, stays 15 s, is clickable, and also shows on the first poll when it just came due. Schema:
+  migration `2026_11_04_000015`, mirrored in `database/sql/01_schema.sql`, `00_reset.sql` and `03_seed.sql` (20 sample plans).
 - Follow-ups page (`FollowUpController@index`, `GET /follow-ups`, menu link for everyone): agents see only their own follow-ups, admins see all and can
   filter by agent; filters pending (default) / overdue / due / today / upcoming / done / all, plus search; "Mark done" uses `follow-ups.done`. The admin
   "Follow-ups overdue" and agent "Follow-ups due" dashboard cards link to it with the matching filter, so a dashboard number always has a list behind it.

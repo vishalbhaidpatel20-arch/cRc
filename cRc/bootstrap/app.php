@@ -17,6 +17,9 @@ return Application::configure(basePath: dirname(__DIR__))
             'active' => \App\Http\Middleware\EnsureUserIsActive::class,
         ]);
 
+        // The browser's timezone, written by public/js/notifications.js (plain text, so it is not an encrypted cookie).
+        $middleware->encryptCookies(except: ['crc_tz']);
+
         // Already-logged-in users who open /login go to their own dashboard.
         $middleware->redirectUsersTo(fn () => route(auth()->user()->homeRoute()));
     })

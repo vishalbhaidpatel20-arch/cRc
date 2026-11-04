@@ -38,12 +38,38 @@
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
 
-    function showToast(text) {
+    // The pop-up. A calendar reminder is amber, stays longer and says "click to open"; clicking any toast opens what it is about.
+    function showToast(text, url, kind) {
         if (!toast) { return; }
+        var reminder = kind === 'reminder';
+        toast.className = 'bell-toast' + (reminder ? ' reminder' : '');
         toast.textContent = text;
+        var hint = document.createElement('small');
+        hint.textContent = reminder ? 'Calendar reminder · click to open' : 'Click to open';
+        toast.appendChild(hint);
+        toast.setAttribute('href', url || toast.getAttribute('data-default-href') || '/notifications');
         toast.hidden = false;
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(function () { toast.hidden = true; }, 6000);
+        toastTimer = setTimeout(function () { toast.hidden = true; }, reminder ? 15000 : 6000);
+    }
+
+    // The server runs in UTC; plans and reminders are in the person's own clock. Tell it which one (cookie + the plan form's hidden field).
+    var zone = null;
+    try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (e) { /* very old browser: the server falls back to UTC */ }
+
+    function syncTimezone() {
+        if (!zone) { return; }
+        document.cookie = 'crc_tz=' + encodeURIComponent(zone) + ';path=/;max-age=31536000;SameSite=Lax';
+        document.querySelectorAll('input[data-tz]').forEach(function (i) { i.value = zone; });
+
+        // The calendar page was drawn before the browser's zone was known: draw it once more in the right one.
+        var drawn = document.querySelector('[data-server-tz]');
+        if (drawn && drawn.getAttribute('data-server-tz') !== zone && !sessionStorage.getItem('crcTzReload')) {
+            sessionStorage.setItem('crcTzReload', '1');
+            location.reload();
+        } else if (drawn && drawn.getAttribute('data-server-tz') === zone) {
+            sessionStorage.removeItem('crcTzReload');
+        }
     }
 
     function render(data) {
@@ -53,8 +79,11 @@
         if (listEl && typeof data.html === 'string' && listEl.innerHTML !== data.html) { listEl.innerHTML = data.html; }
         document.title = (n > 0 ? '(' + (n > 99 ? '99+' : n) + ') ' : '') + document.title.replace(/^\(\d+\+?\)\s*/, '');
 
-        if (seenId !== undefined && data.newest_unread_id && data.newest_unread_id !== seenId && n > 0) {
-            showToast(data.newest_unread_text || 'You have a new notification');
+        // A new unread one pops up. On the very first poll only a reminder that has just come due does (not old unread items).
+        var firstPoll = seenId === undefined;
+        var justDue = data.newest_unread_kind === 'reminder' && typeof data.newest_unread_age === 'number' && data.newest_unread_age <= 180;
+        if (data.newest_unread_id && data.newest_unread_id !== seenId && n > 0 && (!firstPoll || justDue)) {
+            showToast(data.newest_unread_text || 'You have a new notification', data.newest_unread_url, data.newest_unread_kind);
         }
         seenId = data.newest_unread_id || null;
     }
@@ -100,10 +129,17 @@
 
     var debounce = null;
     document.addEventListener('partial:updated', function () {   // a page changed in place (an assignment, a status change, ...)
+        syncTimezone();
         clearTimeout(debounce);
         debounce = setTimeout(refresh, 300);
     });
 
+    // Make sure the hidden zone field is right at the moment a plan is submitted.
+    document.addEventListener('submit', function () { syncTimezone(); }, true);
+
+    if (toast) { toast.addEventListener('click', function () { toast.hidden = true; }); }
+
+    syncTimezone();
     refresh();
     startPolling();
 })();

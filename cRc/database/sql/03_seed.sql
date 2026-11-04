@@ -1,5 +1,5 @@
 -- =====================================================================
--- 03_seed.sql - sample data (made-up names, 20 rows in each business table). Run AFTER 01 and 02.
+-- 03_seed.sql - sample data (made-up names, 20 rows in each business table (plus 20 calendar plans)). Run AFTER 01 and 02.
 -- Dates are relative to NOW() so "today / overdue" queries always have rows.
 -- All sample users log in with the password "password".
 -- 1 admin (Anita) + 19 agents: 4 restricted to 5 companies each, 1 deactivated, 1 invite not yet accepted.
@@ -315,3 +315,26 @@ INSERT INTO notifications (id, type, notifiable_type, notifiable_id, data, read_
  ('1dfb9c98-380e-5ead-a63f-5e77b90be91c', 'App\\Notifications\\TicketAssigned', 'App\\Models\\User', 3, '{"ticket_id":14,"ticket_no":"TKT-0014","title":"Printing two copies of a bill","priority":"medium","assigned_by":"Anita Shah","reason":"Initial assignment"}', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY)),
  ('00d913b2-3e1f-5c54-a872-3be73768d157', 'App\\Notifications\\TicketAssigned', 'App\\Models\\User', 5, '{"ticket_id":15,"ticket_no":"TKT-0015","title":"Slow report for last year","priority":"high","assigned_by":"Anita Shah","reason":"Initial assignment"}', NULL, DATE_SUB(NOW(), INTERVAL 6 DAY), DATE_SUB(NOW(), INTERVAL 6 DAY)),
  ('6adb86d7-b79e-5f3a-b28f-344e104b83d1', 'App\\Notifications\\TicketAssigned', 'App\\Models\\User', 6, '{"ticket_id":16,"ticket_no":"TKT-0016","title":"Link e-invoice to the portal","priority":"critical","assigned_by":"Anita Shah","reason":"Initial assignment"}', DATE_SUB(NOW(), INTERVAL 1 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY));
+
+-- calendar_events: one plan per user (ids 1-20), some done, the rest upcoming with reminders
+INSERT INTO calendar_events (user_id, title, notes, start_at, all_day, remind_minutes, reminded_at, status) VALUES
+ (1, 'Review the unassigned queue', 'Assign everything critical first.', DATE_SUB(NOW(), INTERVAL 26 HOUR), 0, NULL, NOW(), 'done'),
+ (2, 'Call the Bluewave team about the invoice fix', NULL, DATE_SUB(NOW(), INTERVAL 5 HOUR), 0, NULL, NOW(), 'done'),
+ (3, 'Prepare the monthly support report', 'Numbers from the dashboard, last 30 days.', DATE_ADD(NOW(), INTERVAL 3 HOUR), 0, 30, NULL, 'planned'),
+ (4, 'Team stand-up', NULL, DATE_ADD(NOW(), INTERVAL 6 HOUR), 0, 15, NULL, 'planned'),
+ (5, 'One-to-one with Priya', 'Workload and the overdue tickets.', DATE_ADD(NOW(), INTERVAL 24 HOUR), 0, 60, NULL, 'planned'),
+ (6, 'Send the GST report guide to Acme', NULL, DATE_ADD(NOW(), INTERVAL 30 HOUR), 0, 30, NULL, 'planned'),
+ (7, 'Client training session', 'Bring the new screens.', DATE_ADD(NOW(), INTERVAL 48 HOUR), 0, 1440, NULL, 'planned'),
+ (8, 'Follow up on the stock screen fix', NULL, DATE_ADD(NOW(), INTERVAL 50 HOUR), 0, 60, NULL, 'planned'),
+ (9, 'Check the overdue tickets', NULL, DATE_ADD(NOW(), INTERVAL 72 HOUR), 0, 15, NULL, 'planned'),
+ (10, 'Plan the next release notes', NULL, DATE_ADD(NOW(), INTERVAL 96 HOUR), 0, 120, NULL, 'planned'),
+ (11, 'Workshop day', 'All day, offsite.', DATE_ADD(NOW(), INTERVAL 120 HOUR), 1, 0, NULL, 'planned'),
+ (12, 'Review follow-ups with the team', NULL, DATE_ADD(NOW(), INTERVAL 144 HOUR), 0, 30, NULL, 'planned'),
+ (13, 'Quarterly client review', 'Slides are in the shared folder.', DATE_ADD(NOW(), INTERVAL 168 HOUR), 0, 1440, NULL, 'planned'),
+ (14, 'Update the message templates', NULL, DATE_ADD(NOW(), INTERVAL 192 HOUR), 0, 60, NULL, 'planned'),
+ (15, 'Interview a new agent', NULL, DATE_ADD(NOW(), INTERVAL 216 HOUR), 0, 30, NULL, 'planned'),
+ (16, 'Backup and restore check', 'Test the latest dump.', DATE_ADD(NOW(), INTERVAL 240 HOUR), 0, 15, NULL, 'planned'),
+ (17, 'Customer call: custom salary slip', NULL, DATE_ADD(NOW(), INTERVAL 264 HOUR), 0, 30, NULL, 'planned'),
+ (18, 'Prepare the training material', NULL, DATE_ADD(NOW(), INTERVAL 288 HOUR), 0, 120, NULL, 'planned'),
+ (19, 'Month-end closing support', NULL, DATE_ADD(NOW(), INTERVAL 312 HOUR), 0, 60, NULL, 'planned'),
+ (20, 'Planning meeting', 'Agenda in the calendar notes.', DATE_ADD(NOW(), INTERVAL 336 HOUR), 0, 30, NULL, 'planned');
