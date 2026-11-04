@@ -1,5 +1,5 @@
 {{-- Company form fields, shared by the pop-up on the list page and the stand-alone form page. Expects $company. --}}
-<label>Name *</label>
+<label>Company name *</label>
 <input name="name" value="{{ old('name', $company->name) }}" required maxlength="150">
 @error('name')<div class="error">{{ $message }}</div>@enderror
 

@@ -29,7 +29,7 @@
 <div data-region="results">
     <x-grid-skeleton :total="$companies->count()" />
     <table class="list" data-grid>
-        <tr><th>Code</th><th>Name</th><th>Industry</th><th>City</th><th>Contacts</th><th>Status</th></tr>
+        <tr><th>Code</th><th>Company name</th><th>Industry</th><th>City</th><th>Contacts</th><th>Status</th></tr>
         @forelse($companies as $c)
             <tr @class(['row-new' => $highlight === $c->company_id]) id="company-{{ $c->company_id }}">
                 <td>{{ $c->company_code }}</td>
