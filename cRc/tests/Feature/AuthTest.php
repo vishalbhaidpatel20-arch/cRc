@@ -15,6 +15,41 @@ class AuthTest extends TestCase
         $this->get('/login')->assertOk()->assertSee('Log in');
     }
 
+    public function test_the_login_page_is_a_split_screen_with_a_brand_panel_and_a_polished_form(): void
+    {
+        $html = $this->get('/login')->assertOk()->getContent();
+
+        // Brand panel and the welcome form.
+        $this->assertStringContainsString('class="login-shell"', $html);
+        $this->assertStringContainsString('Every client conversation,', $html);
+        $this->assertStringContainsString('Welcome back', $html);
+
+        // The form: both fields with their autocomplete hints, the show/hide password toggle, a posting form that is not sent through partial refresh.
+        $this->assertMatchesRegularExpression('/<form method="POST" action="[^"]*\/login" data-no-ajax>/', $html);
+        $this->assertStringContainsString('name="email"', $html);
+        $this->assertStringContainsString('autocomplete="current-password"', $html);
+        $this->assertStringContainsString('data-toggle-password', $html);
+        $this->assertStringContainsString('Log in</button>', $html);
+
+        // No public sign-up, and the page tells people so.
+        $this->assertStringContainsString('There is no public sign-up.', $html);
+        $this->assertStringNotContainsString('/register', $html);
+
+        // Small screens: the responsive rule comes after the base rules, so it wins.
+        $this->assertGreaterThan(strpos($html, '.login-brand{position:relative'), strpos($html, '@media (max-width:900px)'));
+    }
+
+    public function test_the_login_error_is_shown_inside_the_form_with_the_field_marked_invalid(): void
+    {
+        $this->post('/login', ['email' => 'nobody@example.com', 'password' => 'wrong'])->assertSessionHasErrors('email');
+
+        $html = $this->followingRedirects()->from('/login')->post('/login', ['email' => 'nobody@example.com', 'password' => 'wrong'])->getContent();
+
+        $this->assertStringContainsString('These credentials do not match our records.', $html);
+        $this->assertMatchesRegularExpression('/class="lg-field\s+invalid\s*"/', $html);
+        $this->assertStringContainsString('value="nobody@example.com"', $html, 'the typed email is kept');
+    }
+
     public function test_root_redirects_guests_to_login(): void
     {
         $this->get('/')->assertRedirect(route('login'));

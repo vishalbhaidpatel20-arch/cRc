@@ -99,6 +99,10 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   tables: add `data-grid` (`<th data-flex="3">` = wider column; header cells = columns, one `<td>` per column, no colspan rows except the empty message).
   Cell text wraps to 2 lines (the cell span in grid.jsx needs `minWidth: 0` and `whiteSpace: 'normal'`: AG cells are nowrap flex containers,
   and without these long text is cut off on one line); give a column with long text or pills enough `data-flex` (see the Conversations table).
+- Login page (`auth/login.blade.php`): full-bleed split screen (`main:has(.login-shell)` removes the page padding): indigo brand panel on the left,
+  "Welcome back" form on the right (icon fields, show/hide password toggle, red invalid state, gradient button, "no public sign-up" note). The
+  form keeps `data-no-ajax`. Its page CSS is pushed to `<head>` with `@push('assets')`; the small-screen `@media` rule must stay LAST so it
+  overrides the base rules (the brand panel hides under 900px).
 - Follow-ups page (`FollowUpController@index`, `GET /follow-ups`, menu link for everyone): agents see only their own follow-ups, admins see all and can
   filter by agent; filters pending (default) / overdue / due / today / upcoming / done / all, plus search; "Mark done" uses `follow-ups.done`. The admin
   "Follow-ups overdue" and agent "Follow-ups due" dashboard cards link to it with the matching filter, so a dashboard number always has a list behind it.

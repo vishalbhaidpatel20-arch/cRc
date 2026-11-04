@@ -318,7 +318,7 @@ then load `database/sql/03_seed.sql`. This deletes any records entered by hand.
 
 ## 6. Test case index
 
-Suite total: **494 tests** (includes 9 FollowUpListTest, 13 NotificationTest and 8 DashboardDesignTest) = 16 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 20 PartialRefreshTest + 19 E2E.
+Suite total: **496 tests** (includes 9 FollowUpListTest, 13 NotificationTest and 8 DashboardDesignTest) = 18 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 20 PartialRefreshTest + 19 E2E.
 Per-test names for the earlier feature tests: `php artisan test tests/Feature --testdox`.
 
 ### Unit test classes (227)
