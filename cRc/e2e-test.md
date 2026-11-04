@@ -255,6 +255,13 @@ These are single-feature tests in `tests/Feature/`. They use the same rules as s
 | Template | placeholders `name`, `company`, `ticket_no`, `ticket_title`, `agent_name`; `token('name')` is `{{name}}` |
 | Notification | ticket `TKT-N0001`, title `Printer on fire`, priority `high`, assigned by `Ada Admin`, reason `Urgent` / `Covering for Bob` / null; channel is `database` only, `read_at` null |
 
+### DashboardDesignTest (redesigned dashboards; 7 tests)
+
+Both dashboards are titled "<First name>'s dashboard" (admin and agent) (the browser tab stays "Agent dashboard"); both dashboards use the full page width
+(`main:has(.dash-hero)`); the admin dashboard has icon stat cards, "Open tickets by priority" and "by status" panels (bars scaled to the
+biggest value, resolved tickets not counted, rows link to the filtered ticket list) and "Recent conversations" (latest five); empty states
+for both dashboards; the agent dashboard's overdue count ignores resolved tickets and its cards link to the filtered lists / notifications.
+
 ### NotificationTest (notification system; 13 tests)
 
 Assigning a ticket notifies the agent (`TicketAssigned`); an agent resolving a ticket notifies the admin who made the latest
@@ -303,7 +310,7 @@ then load `database/sql/03_seed.sql`. This deletes any records entered by hand.
 
 ## 6. Test case index
 
-Suite total: **475 tests** (includes 13 NotificationTest) = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 20 PartialRefreshTest + 19 E2E.
+Suite total: **482 tests** (includes 13 NotificationTest and 7 DashboardDesignTest) = 15 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 20 PartialRefreshTest + 19 E2E.
 Per-test names for the earlier feature tests: `php artisan test tests/Feature --testdox`.
 
 ### Unit test classes (227)

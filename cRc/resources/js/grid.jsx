@@ -14,7 +14,9 @@ function Cell({ html, text }) {
     return (
         <span
             title={text}
-            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.35 }}
+            // minWidth/maxWidth: the cell is a flex container, and a flex item will not shrink below its text, so without them
+            // long text stays on one line and is cut off instead of wrapping onto the second line.
+            style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.35, minWidth: 0, width: '100%', overflowWrap: 'break-word', whiteSpace: 'normal' }}
             dangerouslySetInnerHTML={{ __html: html }}
         />
     );

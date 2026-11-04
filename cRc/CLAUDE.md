@@ -42,6 +42,12 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   the contact's best time to reach is stored in `contact_profiles.preferred_time`. The template picker fills the
   message box with a few lines of JavaScript (all templates are rendered server-side into `data-` attributes; a
   `<noscript>` form falls back to `?template=ID`). Channel display names come from `Interaction::channelLabel()`.
+- Dashboard design: both dashboards share one look: a `.dash-hero` header (greeting and date are filled in by a tiny inline script from the
+  browser's clock, because the server runs in UTC), `<x-stat>` icon cards (tone: brand/info/good/warn/bad), `.panel` blocks in a 2/3 + 1/3
+  `.dash-grid`, `partials.dash-bars` for the breakdown bars. `main:has(.dash-hero)` makes them full width. Both dashboards' headings are
+  "<First name>'s dashboard" (the `<title>` stays "Admin dashboard" / "Agent dashboard"). Keep the strings the tests pin ("Welcome, <name>", "Unassigned queue",
+  "Workload per agent", "assigned by <admin>", the quick-link URLs). Panels that change in place carry `data-region` names (admin: `cards`,
+  `queue`, `workload`; agent: `agent-stats`, `agent-next`, `agent-followups`, `agent-assigned`, `agent-priority`).
 - Admin dashboard (`Admin\DashboardController`, `/admin`): admin only. Cards (open, unassigned, critical, overdue,
   conversations today, follow-ups overdue), the unassigned queue (priority, then oldest) with an inline assign form
   that posts to `tickets.assign` with `from=dashboard` (the only redirect value honoured), and workload per agent
@@ -88,9 +94,11 @@ Internal support desk: a software company tracks its 10 client companies, the cl
 - Data grid: list tables (companies, contacts, tickets, users, templates, conversations) are `<table class="list" data-grid>` inside the
   `results` area. `resources/js/grid.jsx` (AG Grid + React, loaded by `resources/js/app.js` through `@vite`) replaces each with a
   full-width sortable grid built from the table's cells (cell HTML is kept, so links, tags and forms still work); `main` goes
-  full width via `main:has(.grid-host)`; the admin and agent dashboards are full width too (`main:has([data-region=cards])` / `board`). Paging and filtering stay server-side: each grid fills the window height (`fit()` in grid.jsx; the `footer.site` is below the fold and only appears when you scroll down) and pages on screen with AG Grid's own pager (`layout()` in grid.jsx picks whole rows that fit, stretches them a little to fill the box, or shrinks the grid when the list is short; 56px base rows, long text clipped to 2 lines with a hover tip), so nothing scrolls. The server sends up to `config('crc.per_page')` rows (200, env `CRC_PER_PAGE`; `tests/TestCase.php` sets 20) and `partials.pager` is only a fallback bar for bigger lists or no JavaScript (inside the `results` area; 20 per page; after a create, redirect to the page where the new row sits). The plain table is the no-JavaScript fallback,
+  full width via `main:has(.grid-host)`; the admin and agent dashboards are full width too (`main:has(.dash-hero)`). Paging and filtering stay server-side: each grid fills the window height (`fit()` in grid.jsx; the `footer.site` is below the fold and only appears when you scroll down) and pages on screen with AG Grid's own pager (`layout()` in grid.jsx picks whole rows that fit, stretches them a little to fill the box, or shrinks the grid when the list is short; 56px base rows, long text clipped to 2 lines with a hover tip), so nothing scrolls. The server sends up to `config('crc.per_page')` rows (200, env `CRC_PER_PAGE`; `tests/TestCase.php` sets 20) and `partials.pager` is only a fallback bar for bigger lists or no JavaScript (inside the `results` area; 20 per page; after a create, redirect to the page where the new row sits). The plain table is the no-JavaScript fallback,
   and empty lists keep their "No ... found" row. `partial.js` fires `partial:updated` after a swap so grids re-mount. New list
   tables: add `data-grid` (`<th data-flex="3">` = wider column; header cells = columns, one `<td>` per column, no colspan rows except the empty message).
+  Cell text wraps to 2 lines (the cell span in grid.jsx needs `minWidth: 0` and `whiteSpace: 'normal'`: AG cells are nowrap flex containers,
+  and without these long text is cut off on one line); give a column with long text or pills enough `data-flex` (see the Conversations table).
 - Notifications (database channel, in-app only): `TicketAssigned` (admin assigns: the agent is told) and `TicketCompleted` (an agent resolves
   the ticket they hold: the admin who made the latest assignment to them is told, else every active admin; see
   `TicketController::notifyCompleted`). Header bell (`partials/notification-bell`, `public/js/notifications.js`): unread badge, dropdown of the

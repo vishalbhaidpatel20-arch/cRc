@@ -36,6 +36,10 @@ class DashboardController extends Controller
                 ->byPriority()->orderBy('tickets.created_at')
                 ->limit(self::QUEUE_LIMIT)->get(),
             'queueTotal' => Ticket::open()->whereNull('tickets.assigned_to')->count(),
+            // Open tickets split by priority and by status (the two breakdown panels), and the latest conversations.
+            'byPriority' => Ticket::open()->selectRaw('tickets.priority, count(*) as total')->groupBy('tickets.priority')->pluck('total', 'priority'),
+            'byStatus' => Ticket::open()->selectRaw('tickets.status, count(*) as total')->groupBy('tickets.status')->pluck('total', 'status'),
+            'recent' => Interaction::with(['contact', 'user', 'ticket', 'followUp'])->latest('interaction_at')->latest('interaction_id')->limit(5)->get(),
             'workload' => $workload,
             'maxOpen' => max(1, (int) $workload->max('open_total')),
             'assignable' => $workload->where('is_active', 1)->values(),

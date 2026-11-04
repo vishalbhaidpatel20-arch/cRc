@@ -35,7 +35,7 @@
 <div data-region="results">
     <x-grid-skeleton :total="$interactions->count()" />
     <table class="list" data-grid>
-        <tr><th>When</th><th data-flex="1.5">Channel</th><th>Contact</th><th data-flex="3">Summary</th><th>Topic</th><th>Follow-up</th><th>Ticket</th><th>Logged by</th></tr>
+        <tr><th data-flex="1.3">When</th><th data-flex="1.5">Channel</th><th>Contact</th><th data-flex="3">Summary</th><th data-flex="1.4">Topic</th><th>Follow-up</th><th data-flex="1.6">Ticket</th><th>Logged by</th></tr>
         @forelse($interactions as $i)
             <tr id="interaction-{{ $i->interaction_id }}">
                 <td style="white-space:nowrap" title="{{ $i->interaction_at->format('d M Y H:i') }}">{{ $i->whenLabel() }}</td>

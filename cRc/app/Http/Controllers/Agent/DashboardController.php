@@ -15,6 +15,7 @@ class DashboardController extends Controller
         // The Ticket global scope already limits these queries to this agent's tickets.
         return view('agent.dashboard', [
             'openCount' => Ticket::open()->count(),
+            'overdueCount' => Ticket::open()->where('tickets.due_at', '<', now())->count(),
             'byPriority' => Ticket::open()->selectRaw('priority, count(*) as total')->groupBy('priority')->pluck('total', 'priority'),
             'topTickets' => Ticket::open()->with(['company', 'contact'])->byPriority()->orderBy('tickets.created_at')->limit(5)->get(),
             'notifications' => $request->user()->unreadNotifications()->latest()->limit(10)->get(),
