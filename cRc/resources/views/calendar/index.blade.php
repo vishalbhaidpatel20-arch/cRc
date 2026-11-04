@@ -9,7 +9,7 @@
 @push('assets')
 <style>
     .cal-nav{display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:.9rem}
-    .cal-nav h3{margin:0;font-size:1.25rem;letter-spacing:-.01em;color:#1F1A5C}
+    .cal-nav h3{margin:0;font-size:1.25rem;letter-spacing:-.01em;color:var(--ink)}
     .cal-nav-btns{display:flex;gap:.4rem}
     .cal-nav-btns .btn{padding:.4rem .8rem;line-height:1.2}
     .cal-legend{display:flex;gap:1rem;flex-wrap:wrap;font-size:.78rem;color:#7b8794;margin-bottom:.8rem}
@@ -19,9 +19,9 @@
     .cal-day{display:flex;flex-direction:column;gap:3px;min-height:112px;padding:.4rem .45rem;border-right:1px solid #e8eaf0;border-bottom:1px solid #e8eaf0;color:inherit;text-decoration:none;background:#fff;min-width:0;transition:background .1s}
     .cal-day:hover{background:#faf9ff}
     .cal-day.out{background:#fafbfc;color:#aab2bd}
-    .cal-day.selected{box-shadow:inset 0 0 0 2px #5B4BDB;background:#f6f5ff}
+    .cal-day.selected{box-shadow:inset 0 0 0 2px var(--brand);background:#f6f5ff}
     .cal-num{align-self:flex-start;min-width:24px;height:24px;padding:0 5px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:.82rem;font-weight:600}
-    .cal-day.today .cal-num{background:#5B4BDB;color:#fff}
+    .cal-day.today .cal-num{background:var(--brand);color:#fff}
     .cal-chip{display:block;font-size:.72rem;line-height:1.35;padding:1px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .cal-chip.overdue{background:#fde8e8;color:#a11a1a;font-weight:600}
     .cal-chip.due{background:#fff1d6;color:#8a5200}

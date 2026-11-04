@@ -7,6 +7,7 @@
     <title>@yield('title', 'cRc') - cRc</title>
     <link rel="icon" type="image/svg+xml" href="{{ asset('images/crc-badge.svg') }}">
     <style>
+        :root{--ink:#1F1A5C;--brand:#5B4BDB}
         *{box-sizing:border-box}
         body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#f4f6f8;color:#1f2933;min-height:100vh;display:flex;flex-direction:column}
         header{background:linear-gradient(90deg,#0b1f4d 0%,#12307a 55%,#1F1A5C 100%);color:#1F1A5C;padding:0 1.5rem;height:65px;display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid;border-image:linear-gradient(90deg,#00b4d8,#2f80ed,#5B4BDB) 1}
