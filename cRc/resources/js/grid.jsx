@@ -55,7 +55,7 @@ function Grid({ columns, heads, flex, rows, pageSize, rowHeight }) {
             rowData={rows}
             rowHeight={rowHeight}
             pagination={true}
-            paginationPageSize={pageSize} // exactly as many rows as fit the box: no empty band above the pager
+            paginationPageSize={pageSize} // always 6 rows per page, no page-size dropdown
             paginationPageSizeSelector={false}
             getRowId={(p) => p.data.id}
             getRowClass={(p) => p.data.cls}
@@ -71,17 +71,9 @@ function Grid({ columns, heads, flex, rows, pageSize, rowHeight }) {
 
 function render(host) {
     const g = grids.get(host);
-    const l = window.crcGridLayout(host, g.rows.length, g.fixed);
+    const l = window.crcGridLayout(g.rows.length);
     host.style.height = l.height + 'px';
-    // The key makes the grid start fresh when the row size or page size changes (window resized), so rows never keep a stale height.
-    g.root.render(<Grid key={l.pageSize + 'x' + l.rowHeight} columns={g.columns} heads={g.heads} flex={g.flex} rows={g.rows} pageSize={l.pageSize} rowHeight={l.rowHeight} />);
-}
-
-let resizeBound = false;
-function bindResize() {
-    if (resizeBound) return;
-    resizeBound = true;
-    window.addEventListener('resize', () => grids.forEach((_, host) => render(host)));
+    g.root.render(<Grid key={l.pageSize} columns={g.columns} heads={g.heads} flex={g.flex} rows={g.rows} pageSize={l.pageSize} rowHeight={l.rowHeight} />);
 }
 
 // Turn each <table data-grid> into a grid; the plain table stays in the page for visitors without JavaScript.
@@ -92,17 +84,15 @@ export function mountGrids(scope = document) {
             g.root.unmount();
             grids.delete(host);
         } else {
-            render(host); // something above may have appeared or gone (for example a flash message)
+            render(host);
         }
     });
-    bindResize();
 
     scope.querySelectorAll('table[data-grid]').forEach((table, n) => {
         const area = table.closest('[data-region]');
         if (area && area._srcHtml === undefined) area._srcHtml = area.innerHTML; // server HTML, before the grid replaces it
         const heads = [...table.querySelector('tr').querySelectorAll('th')];
         const columns = heads.map((th) => th.textContent.trim());
-        const fixed = Number(table.dataset.pageSize) || 0; // small grid inside a page: fixed rows per page
         const flex = heads.map((th) => Number(th.dataset.flex) || 1); // <th data-flex="3"> asks for a wider column
         const rows = [];
 
@@ -134,7 +124,7 @@ export function mountGrids(scope = document) {
             host.className = 'grid-host';
             table.replaceWith(host);
         }
-        grids.set(host, { root: createRoot(host), columns, heads: heads.map((th) => ({ hasAttribute: (n) => th.hasAttribute(n) })), flex, rows, fixed });
+        grids.set(host, { root: createRoot(host), columns, heads: heads.map((th) => ({ hasAttribute: (n) => th.hasAttribute(n) })), flex, rows });
         render(host);
     });
 }

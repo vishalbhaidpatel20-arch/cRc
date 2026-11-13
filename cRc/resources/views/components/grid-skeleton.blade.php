@@ -7,6 +7,6 @@
 --}}
 @props(['total', 'pageSize' => null])
 @if($total > 0)
-<div class="grid-skeleton" data-total="{{ $total }}" @if($pageSize) data-page-size="{{ $pageSize }}" @endif aria-hidden="true"><div class="gs-head"></div>@for($i = 0; $i < min($total, $pageSize ?: 8); $i++)<div class="gs-row"><span></span></div>@endfor</div>
+<div class="grid-skeleton" data-total="{{ $total }}" @if($pageSize) data-page-size="{{ $pageSize }}" @endif aria-hidden="true"><div class="gs-head"></div>@for($i = 0; $i < min($total, 6); $i++)<div class="gs-row"><span></span></div>@endfor</div>
 <script>window.crcFitSkeleton && crcFitSkeleton(document.currentScript.previousElementSibling);</script>
 @endif
