@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ModuleController;
@@ -58,6 +59,7 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
 
         // Product modules (names are entered by the admin, never hard-coded).
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');
@@ -67,6 +69,12 @@ Route::middleware(['auth', 'active'])->group(function () {
 
     Route::middleware('role:agent')->prefix('agent')->name('agent.')->group(function () {
         Route::get('/', AgentDashboardController::class)->name('dashboard');
+    });
+
+    // An agent can delete their own account (admins delete agents from /admin/users).
+    Route::middleware('role:agent')->group(function () {
+        Route::get('/account', [AccountController::class, 'show'])->name('account.show');
+        Route::delete('/account', [AccountController::class, 'destroy'])->name('account.destroy');
     });
 
     // Tickets. Admins and agents both use these routes; what an agent can see is decided by the

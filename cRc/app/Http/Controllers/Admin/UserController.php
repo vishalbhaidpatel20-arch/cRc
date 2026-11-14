@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\User;
+use App\Services\AccountRemoval;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,7 +21,7 @@ class UserController extends Controller
     /** The list order, with the id as a tie-break so pages never overlap. */
     private function ordered()
     {
-        return User::orderBy('role')->orderBy('full_name')->orderBy('user_id');
+        return User::where('email', 'not like', '%'.User::REMOVED_DOMAIN)->orderBy('role')->orderBy('full_name')->orderBy('user_id');
     }
 
     public function index(Request $request): View
@@ -42,6 +43,17 @@ class UserController extends Controller
             'users' => $users,
             'companies' => Company::where('is_active', 1)->orderBy('name')->get(),   // for the pop-up
         ]);
+    }
+
+    /** Admin deletes an agent (never an admin): see AccountRemoval for what that means. */
+    public function destroy(Request $request, User $user, AccountRemoval $removal): RedirectResponse
+    {
+        abort_unless($user->isAgent() && ! $user->isRemoved(), 404);
+
+        $name = $user->full_name;
+        $removal->remove($user, $request->user());
+
+        return redirect()->route('admin.users.index')->with('status', "Agent {$name} deleted. Their open tickets are back in the unassigned queue.");
     }
 
     public function create(): View

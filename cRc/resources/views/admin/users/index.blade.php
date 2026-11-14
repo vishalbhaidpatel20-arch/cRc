@@ -20,9 +20,19 @@
     </form>
 
 <div data-region="results">
+    {{-- One delete form per agent, outside the grid (the row's button points at it with form="..."). Admins are never deletable. --}}
+    @foreach($users as $u)
+        @if($u->isAgent())
+            <form id="delete-user-{{ $u->user_id }}" method="POST" action="{{ route('admin.users.destroy', $u) }}"
+                  onsubmit="return confirm('Delete agent {{ addslashes($u->full_name) }}? Their open tickets go back to the unassigned queue. This cannot be undone.')">
+                @csrf
+                @method('DELETE')
+            </form>
+        @endif
+    @endforeach
     <x-grid-skeleton :total="$users->count()" />
     <table class="list" data-grid>
-        <tr><th>Name</th><th>Email</th><th>Role</th><th>Companies</th><th>Status</th></tr>
+        <tr><th>Name</th><th>Email</th><th>Role</th><th>Companies</th><th>Status</th><th data-nosort>Actions</th></tr>
         @forelse($users as $u)
             <tr @class(['row-new' => $highlight === $u->user_id]) id="user-{{ $u->user_id }}">
                 <td>{{ $u->full_name }}@if($highlight === $u->user_id) <span class="pill green">New</span>@endif</td>
@@ -30,9 +40,10 @@
                 <td>{{ $u->role }}</td>
                 <td>{{ $u->all_companies ? 'All' : 'Selected' }}</td>
                 <td>{{ $u->is_active ? 'Active' : 'Inactive' }}</td>
+                <td>@if($u->isAgent())<button class="btn" type="submit" form="delete-user-{{ $u->user_id }}" style="background:#b42318;padding:.3rem .7rem">Delete</button>@endif</td>
             </tr>
         @empty
-            <tr><td colspan="5" class="muted">No users found.</td></tr>
+            <tr><td colspan="6" class="muted">No users found.</td></tr>
         @endforelse
     </table>
     {{ $users->links('partials.pager') }}

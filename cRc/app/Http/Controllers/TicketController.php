@@ -2,20 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SendTicketAssignedNotification;
+use App\Jobs\SendTicketCompletedNotification;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Interaction;
 use App\Models\Ticket;
 use App\Models\TicketAssignment;
 use App\Models\User;
-use App\Notifications\TicketAssigned;
-use App\Notifications\TicketCompleted;
 use App\Services\TemplateRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -134,7 +133,7 @@ class TicketController extends Controller
                 $this->recordAssignment($ticket, null, $assigneeId, $user, $reason);
 
                 if ($assigneeId !== $user->user_id) {
-                    User::findOrFail($assigneeId)->notify(new TicketAssigned($ticket, $user, $reason));
+                    SendTicketAssignedNotification::dispatch($ticket->ticket_id, $assigneeId, $user->user_id, $reason)->afterCommit();
                 }
             }
 
@@ -195,16 +194,7 @@ class TicketController extends Controller
             return;
         }
 
-        $assigner = TicketAssignment::where('ticket_id', $ticket->ticket_id)
-            ->where('to_user', $actor->user_id)
-            ->orderByDesc('assigned_at')->orderByDesc('assignment_id')
-            ->first()?->assignedBy;
-
-        $recipients = ($assigner && $assigner->isAdmin() && $assigner->is_active)
-            ? collect([$assigner])
-            : User::where('role', User::ROLE_ADMIN)->where('is_active', 1)->get();
-
-        Notification::send($recipients, new TicketCompleted($ticket, $actor));
+        SendTicketCompletedNotification::dispatch($ticket->ticket_id, $actor->user_id);
     }
 
     /** Admin only: assign an unassigned ticket or move it to another agent. */
@@ -230,7 +220,7 @@ class TicketController extends Controller
 
             $this->recordAssignment($locked, $locked->assigned_to, $newAssignee->user_id, $admin, $data['reason'] ?? null);
             $locked->update(['assigned_to' => $newAssignee->user_id]);
-            $newAssignee->notify(new TicketAssigned($locked, $admin, $data['reason'] ?? null));
+            SendTicketAssignedNotification::dispatch($locked->ticket_id, $newAssignee->user_id, $admin->user_id, $data['reason'] ?? null)->afterCommit();
 
             return true;
         });

@@ -73,7 +73,9 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   pop-up must be open; the `+ New` / `Edit` links are opened by the script's click handler (never attach per-link handlers
   in a modal). Scripts inside an area re-run when it is swapped, so keep them idempotent. Opt out with `data-no-ajax`
   (logout and login forms). Navigation is in place too: any same-site link fetches the page and swaps only `<main>`
-  (and the title, history and scroll position; Back/Forward work the same way), while the header and the script stay.
+  (and the title, history and scroll position; Back/Forward work the same way), while the header and the script stay. A page's own CSS
+  (`@push('assets')` styles/stylesheet links in `<head>`) is copied into the live `<head>` on such a swap (`addPageStyles`), otherwise the page
+  (e.g. Calendar) shows unstyled when reached by clicking from another page.
   Everything keeps working without JavaScript as ordinary links and forms.
 - Auto search: GET filter forms (`form.filters`) have no Search/Filter button (it is kept inside `<noscript>`). `partial.js` submits
   them 300 ms after typing and straight away when a select, checkbox or date changes; the newest request wins and the
@@ -120,7 +122,17 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   "Follow-ups overdue" and agent "Follow-ups due" dashboard cards link to it with the matching filter, so a dashboard number always has a list behind it.
 - Notifications (database channel, in-app only): `TicketAssigned` (admin assigns: the agent is told) and `TicketCompleted` (an agent resolves
   the ticket they hold: the admin who made the latest assignment to them is told, else every active admin; see
-  `TicketController::notifyCompleted`). Header bell (`partials/notification-bell`, `public/js/notifications.js`): unread badge, dropdown of the
+  `TicketController::notifyCompleted`) plus `EventReminder`. They are sent by queued jobs in `app/Jobs` on the `notifications` queue
+  (`SendTicketAssignedNotification`, `SendTicketCompletedNotification`, `SendEventReminderNotification`; `ShouldBeUnique`, 3 tries,
+  backoff 10/60/300 s). Jobs carry only ids, never models: the Ticket global scope needs `Auth::user()`, which a worker lacks, so jobs
+  load tickets with `Ticket::withoutGlobalScopes()` (system code) and re-check the world (inactive user, ticket moved) before sending.
+  Controllers dispatch with `->afterCommit()`; `EventReminders::sendDue()` keeps the claim and stale checks synchronous. Dev needs a
+  worker: `php artisan queue:work --queue=notifications,default --tries=3`. Production (Milestone 6) runs that worker under Supervisor
+  (`deploy/supervisor/crc-worker.conf`) plus the cron line in `deploy/cron/crc.cron`. On the Windows dev PC, `deploy/windows/install-tasks.ps1`
+  registers three hidden Task Scheduler tasks instead ("cRc queue worker" and "cRc scheduler" at logon, restarted in a loop; "cRc DB backup"
+  daily 13:00, catches up if the PC was off; `uninstall-tasks.ps1` removes them; logs in `storage/logs/worker.log`, `scheduler.log`, `backup.log`).
+  Without a worker, notifications wait in the `jobs` table. Tests use the sync queue
+  (`phpunit.xml`), or `Queue::fake()` to assert dispatching. Header bell (`partials/notification-bell`, `public/js/notifications.js`): unread badge, dropdown of the
   latest 8, a toast for a new one, polls `GET /notifications/feed` every 20 s and after every in-place page update (`partial:updated`).
   `/notifications` is the full list (a grid), `GET /notifications/{id}/open` marks one read and goes to its ticket, `POST /notifications/read`
   marks all read. Everything goes through `$request->user()->notifications()`, so a user only ever reaches their own. Text comes from
@@ -142,6 +154,11 @@ Internal support desk: a software company tracks its 10 client companies, the cl
 - MariaDB-specific pieces live in migrations: the `trg_interactions_after_insert` trigger, the `chk_tc_author`
   CHECK, FULLTEXT indexes. They cannot run on SQLite.
 - `00_reset.sql` wipes all tables: run it only when the user asks for a rebuild.
+- Backups: `php artisan crc:backup-db` (`app/Console/Commands/BackupDatabase.php`) writes `crc-YYYYMMDD-HHMMSS.sql.gz` (mysqldump
+  `--single-transaction --routines --triggers`, password via `MYSQL_PWD`, never on the command line) to `CRC_BACKUP_PATH` and prunes its own
+  files older than `CRC_BACKUP_KEEP_DAYS` (14). Settings in `config('crc.backup')`. Dev PC: `C:/Users/DELL/Desktop/crc-backups` with XAMPP's
+  `mysqldump.exe`, run daily by the "cRc DB backup" task. Server: scheduled daily 1:00 PM India time (07:30 UTC) in `routes/console.php`, production only.
+  Restore: `gunzip -c FILE.sql.gz | mysql -u USER -p DBNAME`. Tests fake mysqldump (`BackupDatabaseTest`).
 
 ## Testing
 - Tests run on a separate MariaDB database `crc_test` (see `phpunit.xml`). **Never run migrate:fresh, db:seed,

@@ -48,6 +48,21 @@
 
     // ---------- applying a response ----------
 
+    // Page-specific CSS lives in <head> (a <style> or stylesheet <link> pushed by the page). Moving to another page in place
+    // swaps only <main>, so add any style the current document does not have yet (the same one is never added twice).
+    function addPageStyles(doc) {
+        var have = {};
+        document.head.querySelectorAll('style, link[rel="stylesheet"]').forEach(function (el) {
+            have[el.tagName === 'STYLE' ? 's:' + el.textContent : 'l:' + el.href] = true;
+        });
+        doc.head.querySelectorAll('style, link[rel="stylesheet"]').forEach(function (el) {
+            var key = el.tagName === 'STYLE' ? 's:' + el.textContent : 'l:' + el.href;
+            if (have[key]) { return; }
+            have[key] = true;
+            document.head.appendChild(document.importNode(el, true));
+        });
+    }
+
     // Returns true when the page was updated in place.
     function applyDocument(doc, opts) {
         var current = regionsOf(document);
@@ -77,6 +92,7 @@
             var main = document.querySelector('main');
             var newMain = doc.querySelector('main');
             if (!main || !newMain) { return false; }
+            addPageStyles(doc);   // the new page's own CSS (@push('assets') in <head>) must come along, or it shows unstyled
             main.innerHTML = newMain.innerHTML;
             runScripts(main);
             swapped.push(main);

@@ -66,6 +66,19 @@ class User extends Authenticatable
         return $this->role === self::ROLE_AGENT;
     }
 
+    /** A deleted agent keeps its row (history needs the author) but gets this unusable address; see AccountRemoval. */
+    public const REMOVED_DOMAIN = '@removed.invalid';
+
+    public static function removedEmail(int $userId): string
+    {
+        return 'deleted-'.$userId.self::REMOVED_DOMAIN;
+    }
+
+    public function isRemoved(): bool
+    {
+        return str_ends_with((string) $this->email, self::REMOVED_DOMAIN);
+    }
+
     /** Where this user lands after login. */
     public function homeRoute(): string
     {

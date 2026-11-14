@@ -296,6 +296,17 @@ list shows both kinds and an empty state (checked on the table row, not only the
 notifications; an agent who lost the ticket sees only its number ("TKT-0555 (no longer yours)"), never its title, and opening it goes
 to their ticket list, not a 404. The live bell (20 s polling, toast, opening in place) is checked by hand in two browser sessions.
 
+### NotificationQueueTest (queued notifications; 7 tests) and tests/Unit/Jobs (13 tests)
+
+Notifications are sent by queued jobs (`app/Jobs`, queue `notifications`); the tests use `Queue::fake()` for the dispatching side and
+`Notification::fake()` for the jobs. Covered: admin assign dispatches `SendTicketAssignedNotification` with ids only; assigning to
+the agent who already holds the ticket, an agent creating their own ticket, and an admin resolving dispatch nothing; admin creating a
+ticket for an agent dispatches; an agent resolving their ticket dispatches `SendTicketCompletedNotification`; `sendDue()` dispatches
+one `SendEventReminderNotification` per due event and nothing the second time. Jobs: the right user(s) are told; assigned skips a
+reassigned ticket, an inactive agent and missing rows (and works with nobody signed in); completed falls back to all active admins;
+reminder skips an inactive owner; queue name, tries, backoff and unique id. Other tests run on the sync queue, so they still see the
+notification rows straight away.
+
 ## 4. Manual-testing data (dev database `crc`)
 
 Loaded from `database/sql/03_seed.sql` after `php artisan migrate`. Not used by the automated tests.
@@ -332,7 +343,7 @@ then load `database/sql/03_seed.sql`. This deletes any records entered by hand.
 
 ## 6. Test case index
 
-Suite total: **516 tests** (includes 20 CalendarTest, 9 FollowUpListTest, 13 NotificationTest and 8 DashboardDesignTest) = 18 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 20 PartialRefreshTest + 19 E2E.
+Suite total: **536 tests** (516 below + 7 NotificationQueueTest + 13 tests/Unit/Jobs; includes 20 CalendarTest, 9 FollowUpListTest, 13 NotificationTest and 8 DashboardDesignTest) = 18 AuthTest + 10 AgentManagementTest + 18 CompanyContactTest + 13 TicketVisibilityTest + 13 TicketAssignmentTest + 28 InteractionTest + 26 ContactPageTest + 1 Unit placeholder + 227 unit tests (99 earlier + 128 new) + 22 AdminDashboardTest + 16 CompanyModalTest + 34 PopupFormsTest + 20 PartialRefreshTest + 19 E2E.
 Per-test names for the earlier feature tests: `php artisan test tests/Feature --testdox`.
 
 ### Unit test classes (227)
@@ -357,6 +368,9 @@ Per-test names for the earlier feature tests: `php artisan test tests/Feature --
 | InteractionTest | 21 | tests/Unit/Models |
 | MessageTemplateTest | 10 | tests/Unit/Models |
 | TicketAssignedTest | 5 | tests/Unit/Notifications |
+| SendTicketAssignedNotificationTest | 5 | tests/Unit/Jobs |
+| SendTicketCompletedNotificationTest | 5 | tests/Unit/Jobs |
+| SendEventReminderNotificationTest | 3 | tests/Unit/Jobs |
 
 Per-test names: `php artisan test tests/Unit --testdox`.
 

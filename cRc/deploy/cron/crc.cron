@@ -1,0 +1,15 @@
+# cRc scheduler for the Linux server (EC2). One line runs every scheduled task in routes/console.php:
+#   - crc:send-reminders  every minute (calendar reminders for people who are not in the app)
+#   - crc:backup-db       daily at 1:00 PM India time = 07:30 UTC (production only; gzipped mysqldump, pruned after CRC_BACKUP_KEEP_DAYS)
+#
+# Install as the app user (the same user as Supervisor's `user=`, e.g. www-data):
+#   sudo crontab -u www-data deploy/cron/crc.cron      # replaces that user's crontab
+#   sudo crontab -u www-data -l                        # check
+# Or append the line below with `sudo crontab -u www-data -e`.
+#
+# Server .env for backups:  CRC_BACKUP_PATH=/var/backups/crc   (create it: sudo mkdir -p /var/backups/crc && sudo chown www-data /var/backups/crc)
+#                           CRC_MYSQLDUMP=mysqldump            (from the mariadb-client / mysql-client package)
+# Edit /var/www/crc below if the app lives elsewhere. The queue worker is NOT here: it runs under Supervisor
+# (deploy/supervisor/crc-worker.conf).
+
+* * * * * cd /var/www/crc && php artisan schedule:run >> /dev/null 2>&1

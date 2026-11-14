@@ -228,7 +228,7 @@
             @include('partials.notification-bell')
             <form method="POST" action="{{ route('logout') }}" class="who" data-no-ajax>
                 @csrf
-                {{ auth()->user()->full_name }}<span class="badge">{{ auth()->user()->role }}</span>
+                @if(auth()->user()->isAgent())<a href="{{ route('account.show') }}" title="My account" style="color:inherit;text-decoration:none">{{ auth()->user()->full_name }}</a>@else{{ auth()->user()->full_name }}@endif<span class="badge">{{ auth()->user()->role }}</span>
                 <button type="submit">Log out</button>
             </form>
         </div>

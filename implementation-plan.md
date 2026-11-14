@@ -48,6 +48,15 @@ Do each milestone only after the previous one works.
 - Provision EC2 (Nginx, PHP-FPM, MySQL or RDS), set production `.env`, run migrations, enable HTTPS.
 - Scheduled DB backups (mysqldump to S3 or RDS snapshots) with a tested restore.
 - Queue worker and scheduler via Supervisor and cron.
+  - Notifications are queued jobs (`app/Jobs`, queue `notifications`), so a worker must always run. Supervisor program:
+    `php artisan queue:work --queue=notifications,default --tries=3 --sleep=3 --max-time=3600`, `autorestart=true`, `numprocs=1`,
+    `stopwaitsecs=3600`; run `php artisan queue:restart` on every deploy.
+  - Cron: `* * * * * php artisan schedule:run` (sends calendar reminders for people who are not in the app).
+  - Without the worker, notifications wait in the `jobs` table; watch `failed_jobs` (`php artisan queue:failed`).
+  - Files ready in `cRc/deploy/`: `supervisor/crc-worker.conf`, `cron/crc.cron` (install with `sudo crontab -u www-data deploy/cron/crc.cron`),
+    and `windows/install-tasks.ps1` for the dev PC.
+  - Backups: `php artisan crc:backup-db` runs daily at 1:00 PM India time (07:30 UTC) in production (gzipped mysqldump to `CRC_BACKUP_PATH`, e.g.
+    `/var/backups/crc`, kept 14 days). Still to do: copy them off the server (S3) and verify a restore.
 
 **Done when:** the team uses it in production and a backup restore has been verified.
 

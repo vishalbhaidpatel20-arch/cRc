@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Jobs\SendEventReminderNotification;
 use App\Models\CalendarEvent;
 use App\Models\User;
-use App\Notifications\EventReminder;
 
 /**
  * Sends the "your plan starts soon" notification for calendar events whose reminder time has arrived.
@@ -45,7 +45,7 @@ class EventReminders
                 continue;
             }
 
-            $event->owner->notify(new EventReminder($event));
+            SendEventReminderNotification::dispatch($event->event_id);
             $sent++;
         }
 
