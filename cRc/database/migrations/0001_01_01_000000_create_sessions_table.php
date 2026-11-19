@@ -11,7 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // The application's `users` table is created in 2026_11_03_000001_create_users_table.php
+        // Laravel's default tables for password resets and sessions. Laravel's own `users` table was removed from this
+        // file: the application's `users` table is created in 2026_11_03_000001_create_users_table.php.
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {
             $table->string('email')->primary();

@@ -311,17 +311,20 @@ notification rows straight away.
 
 Loaded from `database/sql/03_seed.sql` after `php artisan migrate`. Not used by the automated tests.
 
-The dataset has exactly **20 rows in every business table** (users, companies, product modules, contacts, contact
-profiles, contact-module tags, user-company grants, tickets, ticket assignments, ticket comments, conversations,
-follow-ups, message templates, notifications). All sample users have the password `password`.
+The dataset has **11 users** (1 admin + 10 agents), **15 user-company grants** and exactly **20 rows in every other
+business table** (companies, product modules, contacts, contact profiles, contact-module tags, tickets, ticket
+assignments, ticket comments, conversations, follow-ups, message templates, notifications, calendar plans). All sample
+users have the password `password`.
 
 | Users | Notes |
 |---|---|
 | `anita@support.example` | admin (assigns tickets in the seed data) |
-| `rahul@support.example`, `priya@...`, `karan@...` and 15 more agents (`<firstname>@support.example`) | agents; 4 of them are restricted to 5 companies each (see `user_companies`), 1 is deactivated, 1 has no password yet (invited): login must fail |
+| `rahul@`, `priya@`, `karan@`, `sneha@`, `amit@`, `divya@`, `rohit@`, `pooja@`, `manish@`, `kavita@support.example` | the 10 agents, all active; Karan, Divya and Manish are restricted to 5 companies each (see `user_companies`), the others see all companies |
 | `vishal@example.com` | admin created by hand in `crc` (not in the seed file); password kept by the owner, **not recorded here** |
 
-In `crc` the live data is the seed minus the last agent (so 2 admins + 18 agents = 20 users). Companies are
+The seed has no deactivated or invited agent any more: to check that such a login fails, deactivate an agent from
+the Users page first (or use the automated tests, which create their own). In `crc` the live data is the seed plus the
+hand-made admin (2 admins + 10 agents = 12 users). Companies are
 CMP001 Acme Traders ... CMP020 Trident Printing, one main contact each (contact N belongs to company N) and one
 ticket each (TKT-0001 ... TKT-0020). Tickets 17 to 20 are unassigned and open, 7 and 14 are resolved, tickets 3, 6, 9
 and 12 were reassigned once (that is why there are 20 assignment rows for 16 assigned tickets). Each assignment has
