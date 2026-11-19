@@ -267,10 +267,10 @@ class TicketController extends Controller
         ]);
     }
 
-    /** Only active agents can receive tickets. */
+    /** Only active, not deleted agents can receive tickets (Rule::exists ignores SoftDeletes, so deleted_at is checked here). */
     private function assignableAgentRule()
     {
-        return Rule::exists('users', 'user_id')->where('role', User::ROLE_AGENT)->where('is_active', 1);
+        return Rule::exists('users', 'user_id')->where('role', User::ROLE_AGENT)->where('is_active', 1)->whereNull('deleted_at');
     }
 
     private function assignableAgents()

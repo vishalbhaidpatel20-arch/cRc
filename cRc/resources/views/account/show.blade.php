@@ -8,15 +8,14 @@
 
     <h3 style="margin:0 0 .4rem;color:#b42318">Delete my account</h3>
     <p style="margin:0 0 .6rem">
-        This signs you out and you can never sign in again; only an admin can create you a new account.
-        Your name, email and phone are wiped (your past conversations stay in the log as "Deleted agent #{{ auth()->user()->user_id }}"),
-        your private calendar plans and notifications are deleted, your pending follow-ups are cancelled, and the tickets
-        you still hold go back to the unassigned queue for an admin to hand out.
+        This signs you out and you can no longer sign in; only an admin can restore your account.
+        Your past conversations and ticket history stay in the log under your name, your pending follow-ups are cancelled,
+        and the tickets you still hold go back to the unassigned queue for an admin to hand out.
     </p>
 
     {{-- A normal form post (data-no-ajax): the session ends here, so the page must really reload. --}}
     <form method="POST" action="{{ route('account.destroy') }}" data-no-ajax
-          onsubmit="return confirm('Delete your account for good? This cannot be undone.')">
+          onsubmit="return confirm('Delete your account? You will be signed out and only an admin can restore it.')">
         @csrf
         @method('DELETE')
         <label for="account-password">Type your password to confirm</label>

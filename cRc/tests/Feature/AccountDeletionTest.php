@@ -11,7 +11,10 @@ use App\Notifications\TicketAssigned;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
-/** An admin can delete an agent and an agent can delete themselves. The row stays (history keeps its author) but the person is gone. */
+/**
+ * An admin can delete an agent and an agent can delete themselves. Deleting is a soft delete: the row and its details stay
+ * (history keeps its author, an admin can restore it), but the account cannot sign in and leaves every list and picker.
+ */
 class AccountDeletionTest extends TestCase
 {
     use RefreshDatabase;
@@ -63,11 +66,14 @@ class AccountDeletionTest extends TestCase
             ->assertRedirect(route('admin.users.index'))
             ->assertSessionHas('status');
 
-        $alice = $this->alice->fresh();
+        // Soft-deleted: hidden from normal queries, but the row keeps its details.
+        $this->assertNull(User::find($this->alice->user_id));
+        $alice = User::withTrashed()->find($this->alice->user_id);
+        $this->assertTrue($alice->trashed());
         $this->assertTrue($alice->isRemoved());
-        $this->assertSame('Deleted agent #'.$alice->user_id, $alice->full_name);
-        $this->assertNull($alice->phone);
-        $this->assertNull($alice->password_hash);
+        $this->assertSame('Alice Agent', $alice->full_name);
+        $this->assertSame('alice@example.com', $alice->email);
+        $this->assertNotNull($alice->password_hash);
         $this->assertFalse((bool) $alice->is_active);
 
         $this->assertNull(Ticket::withoutGlobalScopes()->find($w['open']->ticket_id)->assigned_to);
@@ -78,15 +84,98 @@ class AccountDeletionTest extends TestCase
         ]);
         $this->assertDatabaseHas('interactions', ['interaction_id' => $w['interaction']->interaction_id, 'user_id' => $alice->user_id]);
         $this->assertSame('cancelled', $w['followUp']->fresh()->status);
-        $this->assertDatabaseMissing('calendar_events', ['event_id' => $w['plan']->event_id]);
-        $this->assertDatabaseCount('notifications', 0);
+        // Private plans and notifications are kept (only she could see them), so a restore brings them back.
+        $this->assertDatabaseHas('calendar_events', ['event_id' => $w['plan']->event_id]);
+        $this->assertDatabaseCount('notifications', 1);
+    }
+
+    public function test_history_still_shows_a_deleted_agent_by_name(): void
+    {
+        $w = $this->giveAliceWork();
+        $this->as($this->admin)->delete(route('admin.users.destroy', $this->alice));
+
+        // Her resolved ticket keeps her as its agent, and the contact's log keeps her as the author.
+        $this->as($this->admin)->get(route('tickets.show', $w['resolved']))->assertOk()->assertSee('Alice Agent');
+        $this->as($this->admin)->get(route('contacts.show', $w['interaction']->contact_id))->assertOk()->assertSee('Alice Agent');
+    }
+
+    public function test_a_deleted_agent_cannot_be_given_a_ticket(): void
+    {
+        $ticket = Ticket::factory()->create(['assigned_to' => null]);
+        $this->as($this->admin)->delete(route('admin.users.destroy', $this->alice));
+
+        $this->as($this->admin)->post(route('tickets.assign', $ticket), ['assigned_to' => $this->alice->user_id])
+            ->assertSessionHasErrors('assigned_to');
+        $this->assertNull(Ticket::withoutGlobalScopes()->find($ticket->ticket_id)->assigned_to);
+    }
+
+    public function test_the_users_page_lists_deleted_agents_with_a_restore_button(): void
+    {
+        $this->as($this->admin)->get(route('admin.users.index'))->assertOk()->assertSee('No deleted agents.');
+
+        $this->as($this->admin)->delete(route('admin.users.destroy', $this->alice));
+
+        $this->as($this->admin)->get(route('admin.users.index'))->assertOk()
+            ->assertSee('id="deleted-user-'.$this->alice->user_id.'"', false)
+            ->assertSee(route('admin.users.restore', $this->alice->user_id), false)
+            ->assertDontSee('No deleted agents.');
+    }
+
+    public function test_admin_restores_a_deleted_agent_who_can_sign_in_again(): void
+    {
+        $this->as($this->admin)->delete(route('admin.users.destroy', $this->alice));
+
+        $this->as($this->admin)->patch(route('admin.users.restore', $this->alice->user_id))
+            ->assertRedirect(route('admin.users.index'))
+            ->assertSessionHas('highlight', $this->alice->user_id);
+
+        $alice = User::find($this->alice->user_id);   // found again without withTrashed()
+        $this->assertNotNull($alice);
+        $this->assertNull($alice->deleted_at);
+        $this->assertTrue((bool) $alice->is_active);
+        $this->as($this->admin)->get(route('admin.users.index'))->assertSee('id="user-'.$alice->user_id.'"', false)
+            ->assertSee('No deleted agents.');
+
+        $this->app['auth']->forgetGuards();
+        $this->post(route('login'), ['email' => 'alice@example.com', 'password' => 'password'])->assertRedirect();
+        $this->assertAuthenticatedAs($alice);
+    }
+
+    public function test_only_admins_restore_and_only_deleted_agents(): void
+    {
+        $bob = User::factory()->agent()->create();
+        $this->as($this->admin)->delete(route('admin.users.destroy', $this->alice));
+
+        // An agent cannot restore anyone (role:admin), and Alice stays deleted.
+        $this->as($bob)->patch(route('admin.users.restore', $this->alice->user_id))->assertForbidden();
+        $this->assertTrue(User::withTrashed()->find($this->alice->user_id)->trashed());
+
+        // Restoring an agent who is not deleted, or an admin, is a 404.
+        $this->as($this->admin)->patch(route('admin.users.restore', $bob))->assertNotFound();
+        $this->as($this->admin)->patch(route('admin.users.restore', $this->admin))->assertNotFound();
+        $this->as($this->admin)->patch(route('admin.users.restore', 999999))->assertNotFound();
+    }
+
+    public function test_a_deleted_agents_email_cannot_be_reused_and_the_message_says_why(): void
+    {
+        $this->as($this->admin)->delete(route('admin.users.destroy', $this->alice));
+
+        $this->as($this->admin)->post(route('admin.users.store'), [
+            'full_name' => 'New Alice', 'email' => 'alice@example.com', 'phone' => null,
+            'password' => 'password123', 'password_confirmation' => 'password123', 'all_companies' => 1,
+        ])->assertSessionHasErrors(['email' => 'This email is already used, possibly by a deleted agent (deleted accounts keep their address).']);
+
+        $this->assertSame(1, User::withTrashed()->where('email', 'alice@example.com')->count());
     }
 
     public function test_a_deleted_agent_disappears_from_the_users_list_and_cannot_log_in(): void
     {
         $this->as($this->admin)->delete(route('admin.users.destroy', $this->alice));
 
-        $this->as($this->admin)->get(route('admin.users.index'))->assertOk()->assertDontSee('Deleted agent')->assertDontSee('alice@example.com');
+        // She leaves the main list (her row id) and shows up only under "Deleted agents".
+        $this->as($this->admin)->get(route('admin.users.index'))->assertOk()
+            ->assertDontSee('id="user-'.$this->alice->user_id.'"', false)
+            ->assertSee('id="deleted-user-'.$this->alice->user_id.'"', false);
         $this->app['auth']->forgetGuards();
         $this->post(route('login'), ['email' => 'alice@example.com', 'password' => 'password'])->assertSessionHasErrors('email');
         $this->assertGuest();

@@ -26,7 +26,7 @@ class CalendarEvent extends Model
 
     public function owner(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'user_id', 'user_id');
+        return $this->belongsTo(User::class, 'user_id', 'user_id')->withTrashed();   // EventReminders skips an inactive owner
     }
 
     public function getRouteKeyName(): string

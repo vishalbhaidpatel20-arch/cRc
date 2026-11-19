@@ -45,7 +45,7 @@ class SendTicketCompletedNotification implements ShouldBeUnique, ShouldQueue
     public function handle(): void
     {
         $ticket = Ticket::withoutGlobalScopes()->find($this->ticketId);
-        $agent = User::find($this->agentId);
+        $agent = User::withTrashed()->find($this->agentId);   // the work was done even if the agent was deleted since
 
         if (! $ticket || ! $agent) {
             return;

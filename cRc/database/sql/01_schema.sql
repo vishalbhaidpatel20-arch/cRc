@@ -20,6 +20,7 @@ CREATE TABLE users (
   is_active      TINYINT(1)   NOT NULL DEFAULT 1,
   created_by     INT UNSIGNED NULL,
   created_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted_at     TIMESTAMP    NULL DEFAULT NULL COMMENT 'Soft delete: set when an agent is deleted; the row stays for history',
   PRIMARY KEY (user_id),
   UNIQUE KEY uq_users_email (email),
   CONSTRAINT fk_users_created_by FOREIGN KEY (created_by)

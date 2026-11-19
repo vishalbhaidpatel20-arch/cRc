@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\CalendarEvent;
 use App\Models\FollowUp;
 use App\Models\Ticket;
 use App\Models\TicketAssignment;
@@ -10,10 +9,12 @@ use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
- * "Deleting" an agent. The row itself stays, because conversations, follow-ups and assignment history must keep their author
- * (foreign keys RESTRICT; history is append-only). What is removed is the person: the account can no longer sign in, their
- * name, email and phone are wiped (the row reads "Deleted agent #12"), their private plans, notifications, sessions and company
- * links are deleted, and the tickets they still held go back to the unassigned queue.
+ * Deleting an agent is a SOFT delete (User uses SoftDeletes): deleted_at is set and the row keeps its name, email and phone,
+ * because conversations, follow-ups and assignment history must keep their author (foreign keys RESTRICT; history is
+ * append-only) and an admin may restore the account. A soft-deleted user is invisible to normal queries, so they cannot sign
+ * in and no longer appear in lists or pickers. Their work is handed back: tickets they still held go to the unassigned queue,
+ * pending follow-ups are cancelled and their sessions end. Their private plans, notifications and company links are kept
+ * (nobody else can see them) so a restore brings them back; is_active is cleared too, so no reminder is sent to them.
  */
 class AccountRemoval
 {
@@ -47,19 +48,10 @@ class AccountRemoval
             // Nobody is left to do their pending follow-ups; the rows stay as history.
             FollowUp::where('assigned_to', $locked->user_id)->where('status', 'pending')->update(['status' => 'cancelled']);
 
-            CalendarEvent::where('user_id', $locked->user_id)->delete();
-            $locked->notifications()->delete();
-            $locked->companies()->detach();
             DB::table(config('session.table', 'sessions'))->where('user_id', $locked->user_id)->delete();
 
-            $locked->forceFill([
-                'full_name' => 'Deleted agent #'.$locked->user_id,
-                'email' => User::removedEmail($locked->user_id),
-                'phone' => null,
-                'password_hash' => null,
-                'all_companies' => false,
-                'is_active' => false,
-            ])->save();
+            $locked->forceFill(['is_active' => false])->save();
+            $locked->delete();   // soft delete: sets deleted_at, keeps the details for history and a possible restore
         });
     }
 }

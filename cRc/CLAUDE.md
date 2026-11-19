@@ -21,6 +21,13 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   maps the column. `role` is `admin` or `agent`. Use `$user->homeRoute()` for the post-login redirect: login ALWAYS lands on the dashboard (no `intended()`, the remembered page is dropped).
 - Never hard-delete users, companies or contacts: deactivate with `is_active`. FKs use RESTRICT for history,
   CASCADE for child rows, SET NULL for optional links (see `database/sql/01_schema.sql`).
+- Deleting an agent (`AccountRemoval`, admin Users page or the agent's own Account page) is a SOFT delete: `User` uses
+  `SoftDeletes`, so the row keeps its details but leaves every Eloquent query, list, picker and login. Relations that show
+  history (`Ticket::assignee`, `TicketAssignment` from/to/by, `Interaction::user`, `FollowUp::assignee`, `CalendarEvent::owner`)
+  use `->withTrashed()`. `Rule::exists('users')` and raw `DB::table('users')` ignore SoftDeletes: add `whereNull('deleted_at')`.
+  A deleted agent's email stays taken (unique index). `User::isRemoved()` means `trashed()`. Admins restore a deleted agent from
+  the "Deleted agents" list on the Users page (`PATCH /admin/users/{user}/restore`, route `->withTrashed()`, `data-region="deleted"`):
+  the account comes back active, but queued tickets and cancelled follow-ups are not handed back automatically.
 - There is NO public registration. Only admins create agents (`Admin\UserController`); role is forced to `agent`
   server-side. Do not add a `/register` route.
 - Access control: `role:admin` / `role:agent` middleware plus `active` (logs out deactivated users). Agents can view

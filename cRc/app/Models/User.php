@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -15,7 +16,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     public const ROLE_ADMIN = 'admin';
 
@@ -66,17 +67,13 @@ class User extends Authenticatable
         return $this->role === self::ROLE_AGENT;
     }
 
-    /** A deleted agent keeps its row (history needs the author) but gets this unusable address; see AccountRemoval. */
-    public const REMOVED_DOMAIN = '@removed.invalid';
-
-    public static function removedEmail(int $userId): string
-    {
-        return 'deleted-'.$userId.self::REMOVED_DOMAIN;
-    }
-
+    /**
+     * A deleted agent is soft-deleted (deleted_at is set, see AccountRemoval): the row and its details stay so history keeps
+     * its author and an admin can restore the account, but normal queries, logins and pickers no longer see it.
+     */
     public function isRemoved(): bool
     {
-        return str_ends_with((string) $this->email, self::REMOVED_DOMAIN);
+        return $this->trashed();
     }
 
     /** Where this user lands after login. */

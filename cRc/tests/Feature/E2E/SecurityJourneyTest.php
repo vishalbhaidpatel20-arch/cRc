@@ -22,6 +22,7 @@ class SecurityJourneyTest extends TestCase
             ['GET', '/admin/users/create'],
             ['POST', '/admin/users'],
             ['DELETE', '/admin/users/1'],
+            ['PATCH', '/admin/users/1/restore'],
             ['GET', '/account'],
             ['DELETE', '/account'],
             ['GET', '/admin/modules'],

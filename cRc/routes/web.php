@@ -60,6 +60,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
         Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+        // Undo a delete: withTrashed() so the route can find a soft-deleted agent (normal binding skips them).
+        Route::patch('/users/{user}/restore', [UserController::class, 'restore'])->withTrashed()->name('users.restore');
 
         // Product modules (names are entered by the admin, never hard-coded).
         Route::get('/modules', [ModuleController::class, 'index'])->name('modules.index');

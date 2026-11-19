@@ -24,7 +24,7 @@
     @foreach($users as $u)
         @if($u->isAgent())
             <form id="delete-user-{{ $u->user_id }}" method="POST" action="{{ route('admin.users.destroy', $u) }}"
-                  onsubmit="return confirm('Delete agent {{ addslashes($u->full_name) }}? Their open tickets go back to the unassigned queue. This cannot be undone.')">
+                  onsubmit="return confirm('Delete agent {{ addslashes($u->full_name) }}? They can no longer sign in and their open tickets go back to the unassigned queue. You can restore them later from Deleted agents.')">
                 @csrf
                 @method('DELETE')
             </form>
@@ -47,6 +47,35 @@
         @endforelse
     </table>
     {{ $users->links('partials.pager') }}
+</div>
+
+{{-- Soft-deleted agents (admins only: this whole controller is behind role:admin). Always-present area so a delete or a
+     restore refreshes both lists in place. --}}
+<div data-region="deleted" id="deleted-agents">
+    <h3 style="margin:1.6rem 0 .3rem">Deleted agents</h3>
+    <p class="muted" style="margin:0 0 .6rem">They cannot sign in. Restore gives back the account; reassign their old tickets from the unassigned queue.</p>
+    @php($tz = \App\Support\UserTime::zone(request()))
+    @foreach($deleted as $d)
+        <form id="restore-user-{{ $d->user_id }}" method="POST" action="{{ route('admin.users.restore', $d) }}"
+              onsubmit="return confirm('Restore agent {{ addslashes($d->full_name) }}? They can sign in again.')">
+            @csrf
+            @method('PATCH')
+        </form>
+    @endforeach
+    <x-grid-skeleton :total="$deleted->count()" />
+    <table class="list" data-grid>
+        <tr><th>Name</th><th>Email</th><th>Deleted on</th><th data-nosort>Actions</th></tr>
+        @forelse($deleted as $d)
+            <tr id="deleted-user-{{ $d->user_id }}">
+                <td>{{ $d->full_name }}</td>
+                <td>{{ $d->email }}</td>
+                <td>{{ \App\Support\UserTime::local($d->deleted_at, $tz)->format('d M Y, H:i') }}</td>
+                <td><button class="btn" type="submit" form="restore-user-{{ $d->user_id }}" style="padding:.3rem .7rem">Restore</button></td>
+            </tr>
+        @empty
+            <tr><td colspan="4" class="muted">No deleted agents.</td></tr>
+        @endforelse
+    </table>
 </div>
 </div>
 

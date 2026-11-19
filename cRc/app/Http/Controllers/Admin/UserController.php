@@ -21,7 +21,8 @@ class UserController extends Controller
     /** The list order, with the id as a tie-break so pages never overlap. */
     private function ordered()
     {
-        return User::where('email', 'not like', '%'.User::REMOVED_DOMAIN)->orderBy('role')->orderBy('full_name')->orderBy('user_id');
+        // Soft-deleted agents are left out automatically (SoftDeletes).
+        return User::query()->orderBy('role')->orderBy('full_name')->orderBy('user_id');
     }
 
     public function index(Request $request): View
@@ -41,8 +42,32 @@ class UserController extends Controller
 
         return view('admin.users.index', [
             'users' => $users,
+            // Soft-deleted agents, newest first, for the "Deleted agents" list with its Restore buttons.
+            'deleted' => User::onlyTrashed()->where('role', User::ROLE_AGENT)->orderByDesc('deleted_at')->orderBy('user_id')->get(),
             'companies' => Company::where('is_active', 1)->orderBy('name')->get(),   // for the pop-up
         ]);
+    }
+
+    /**
+     * Admin restores a deleted agent: deleted_at is cleared and the account is active again, so they can sign in and appear in
+     * lists and pickers. Tickets that went back to the queue and follow-ups that were cancelled are NOT handed back
+     * automatically: the admin reassigns what is still needed.
+     */
+    public function restore(User $user): RedirectResponse
+    {
+        abort_unless($user->isAgent() && $user->trashed(), 404);
+
+        DB::transaction(function () use ($user) {
+            $user->restore();
+            $user->forceFill(['is_active' => true])->save();
+        });
+
+        $position = $this->ordered()->pluck('user_id')->search($user->user_id);
+        $page = intdiv((int) $position, config('crc.per_page')) + 1;
+
+        return redirect()->route('admin.users.index', $page > 1 ? ['page' => $page] : [])
+            ->with('status', "Agent {$user->full_name} restored and can sign in again. Their old tickets stay in the unassigned queue until you reassign them.")
+            ->with('highlight', $user->user_id);
     }
 
     /** Admin deletes an agent (never an admin): see AccountRemoval for what that means. */
@@ -67,12 +92,15 @@ class UserController extends Controller
     {
         $data = $request->validate([
             'full_name' => ['required', 'string', 'max:120'],
+            // unique:users also counts soft-deleted agents (their row keeps the address), so the message says so.
             'email' => ['required', 'email', 'max:190', 'unique:users,email'],
             'phone' => ['nullable', 'string', 'max:30'],
             'password' => ['required', 'confirmed', Password::min(8)],
             'all_companies' => ['required', 'boolean'],
             'companies' => ['exclude_if:all_companies,1', 'required', 'array', 'min:1'],
             'companies.*' => ['integer', 'exists:companies,company_id'],
+        ], [
+            'email.unique' => 'This email is already used, possibly by a deleted agent (deleted accounts keep their address).',
         ]);
 
         $agent = DB::transaction(function () use ($data, $request) {

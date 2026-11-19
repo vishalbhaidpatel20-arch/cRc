@@ -54,7 +54,7 @@ class FollowUpController extends Controller
             'followUps' => $followUps,
             'filter' => $filter,
             'filters' => self::FILTERS,
-            'agents' => $user->isAdmin() ? User::where('role', User::ROLE_AGENT)->where('email', 'not like', '%'.User::REMOVED_DOMAIN)->orderBy('full_name')->get(['user_id', 'full_name']) : collect(),
+            'agents' => $user->isAdmin() ? User::where('role', User::ROLE_AGENT)->orderBy('full_name')->get(['user_id', 'full_name']) : collect(),
         ]);
     }
 

@@ -66,7 +66,7 @@ class Ticket extends Model
 
     public function assignee(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_to', 'user_id');
+        return $this->belongsTo(User::class, 'assigned_to', 'user_id')->withTrashed();   // a resolved ticket keeps its deleted agent
     }
 
     public function assignments(): HasMany

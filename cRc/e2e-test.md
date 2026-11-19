@@ -296,6 +296,18 @@ list shows both kinds and an empty state (checked on the table row, not only the
 notifications; an agent who lost the ticket sees only its number ("TKT-0555 (no longer yours)"), never its title, and opening it goes
 to their ticket list, not a 404. The live bell (20 s polling, toast, opening in place) is checked by hand in two browser sessions.
 
+### AccountDeletionTest (deleting agents = soft delete, admin restore; 15 tests)
+
+- An admin deletes an agent, or an agent deletes themselves with their password: `users.deleted_at` is set (SoftDeletes), the row
+  keeps name, email and phone, open tickets go back to the queue with an "Agent account deleted" history row, pending follow-ups
+  are cancelled; private plans and notifications are kept for a restore.
+- The deleted agent leaves the Users list (and appears under "Deleted agents" with a Restore button), cannot sign in and cannot
+  be given a ticket; history (a resolved ticket, the contact's log) still shows them by name.
+- Restore (`PATCH /admin/users/{id}/restore`, admin only): clears `deleted_at`, sets `is_active`, the agent is back in the list and
+  signs in again. An agent gets 403; restoring an agent who is not deleted, an admin or an unknown id is a 404.
+- Admins cannot be deleted; agents cannot delete others; deleting twice is a 404; a deleted agent's email cannot be reused and
+  the error says why.
+
 ### HorizonDashboardTest (2 tests)
 
 - Gate `viewHorizon`: only active admins; guests, agents and deactivated admins are refused.

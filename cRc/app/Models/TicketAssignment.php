@@ -28,16 +28,16 @@ class TicketAssignment extends Model
 
     public function fromUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'from_user', 'user_id');
+        return $this->belongsTo(User::class, 'from_user', 'user_id')->withTrashed();
     }
 
     public function toUser(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'to_user', 'user_id');
+        return $this->belongsTo(User::class, 'to_user', 'user_id')->withTrashed();
     }
 
     public function assignedBy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'assigned_by', 'user_id');
+        return $this->belongsTo(User::class, 'assigned_by', 'user_id')->withTrashed();
     }
 }
