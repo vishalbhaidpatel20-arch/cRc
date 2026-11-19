@@ -296,6 +296,11 @@ list shows both kinds and an empty state (checked on the table row, not only the
 notifications; an agent who lost the ticket sees only its number ("TKT-0555 (no longer yours)"), never its title, and opening it goes
 to their ticket list, not a 404. The live bell (20 s polling, toast, opening in place) is checked by hand in two browser sessions.
 
+### HorizonDashboardTest (2 tests)
+
+- Gate `viewHorizon`: only active admins; guests, agents and deactivated admins are refused.
+- `/horizon` is 403 for guests and agents, 200 for an admin (Horizon routes are skipped by the SecurityJourneyTest route list).
+
 ### NotificationQueueTest (queued notifications; 7 tests) and tests/Unit/Jobs (13 tests)
 
 Notifications are sent by queued jobs (`app/Jobs`, queue `notifications`); the tests use `Queue::fake()` for the dispatching side and

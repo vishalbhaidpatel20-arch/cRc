@@ -96,7 +96,8 @@ class SecurityJourneyTest extends TestCase
 
         foreach (app('router')->getRoutes() as $route) {
             $uri = $route->uri();
-            if (str_starts_with($uri, 'up') || str_starts_with($uri, 'storage') || str_starts_with($uri, '_')) {
+            if (str_starts_with($uri, 'up') || str_starts_with($uri, 'storage') || str_starts_with($uri, '_') || str_starts_with($uri, 'horizon')) {
+                // Horizon's own routes are gated by the viewHorizon gate (see HorizonDashboardTest).
                 continue;
             }
             $normalized = preg_replace('/\{[^}]+\}/', '1', $uri);

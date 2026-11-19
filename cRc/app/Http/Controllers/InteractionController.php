@@ -9,6 +9,7 @@ use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
@@ -139,10 +140,10 @@ class InteractionController extends Controller
         ]);
     }
 
-    private function dateOrNull(?string $value): ?\Illuminate\Support\Carbon
+    private function dateOrNull(?string $value): ?Carbon
     {
         try {
-            return $value ? \Illuminate\Support\Carbon::parse($value) : null;
+            return $value ? Carbon::parse($value) : null;
         } catch (\Throwable) {
             return null;
         }

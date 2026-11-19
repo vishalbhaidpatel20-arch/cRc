@@ -15,3 +15,8 @@ Schedule::command('crc:send-reminders')->everyMinute()->withoutOverlapping();
 // its own Task Scheduler task instead, so it is limited to production here (otherwise `schedule:work` on the PC would back up twice).
 Schedule::command('crc:backup-db')->dailyAt('13:00')->timezone('Asia/Kolkata')
     ->environments('production')->withoutOverlapping()->onOneServer();
+
+// Horizon dashboard metrics (production only: Horizon needs Redis and pcntl, so it does not run on the Windows dev PC).
+if (app()->environment('production')) {
+    Schedule::command('horizon:snapshot')->everyFiveMinutes();
+}

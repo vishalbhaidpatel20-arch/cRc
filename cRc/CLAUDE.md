@@ -131,7 +131,7 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   (`deploy/supervisor/crc-worker.conf`) plus the cron line in `deploy/cron/crc.cron`. On the Windows dev PC, `deploy/windows/install-tasks.ps1`
   registers three hidden Task Scheduler tasks instead ("cRc queue worker" and "cRc scheduler" at logon, restarted in a loop; "cRc DB backup"
   daily 13:00, catches up if the PC was off; `uninstall-tasks.ps1` removes them; logs in `storage/logs/worker.log`, `scheduler.log`, `backup.log`).
-  Without a worker, notifications wait in the `jobs` table. Tests use the sync queue
+  Horizon (`laravel/horizon`, `/horizon`, active admins only via `HorizonServiceProvider`, test `HorizonDashboardTest`) is for PRODUCTION only: it needs Redis and `pcntl`/`posix`, which the Windows dev PC lacks (composer was run with `--ignore-platform-req=ext-pcntl --ignore-platform-req=ext-posix`; on the server do a normal install). Server: `QUEUE_CONNECTION=redis`, run `deploy/supervisor/crc-horizon.conf` INSTEAD of `crc-worker.conf`, `php artisan horizon:terminate` after each deploy; `horizon:snapshot` is scheduled in production. Dev keeps the database queue. Horizon routes are skipped by the SecurityJourneyTest route list. Without a worker, notifications wait in the `jobs` table. Tests use the sync queue
   (`phpunit.xml`), or `Queue::fake()` to assert dispatching. Header bell (`partials/notification-bell`, `public/js/notifications.js`): unread badge, dropdown of the
   latest 8, a toast for a new one, polls `GET /notifications/feed` every 20 s and after every in-place page update (`partial:updated`).
   `/notifications` is the full list (a grid), `GET /notifications/{id}/open` marks one read and goes to its ticket, `POST /notifications/read`

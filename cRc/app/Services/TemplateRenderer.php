@@ -6,6 +6,8 @@ use App\Models\Contact;
 use App\Models\MessageTemplate;
 use App\Models\Ticket;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 /**
  * Fills {{placeholders}} in a message template. Pure text substitution: nothing is evaluated,
@@ -40,9 +42,9 @@ class TemplateRenderer
      * Everything the "log a conversation" panel needs: the usable templates and, when
      * ?template=ID is in the URL, that template already filled in for this contact/ticket.
      *
-     * @return array{templates: \Illuminate\Support\Collection, selected: ?MessageTemplate, rendered: ?array}
+     * @return array{templates: Collection, selected: ?MessageTemplate, rendered: ?array}
      */
-    public function panelData(\Illuminate\Http\Request $request, ?Contact $contact, ?Ticket $ticket): array
+    public function panelData(Request $request, ?Contact $contact, ?Ticket $ticket): array
     {
         $templates = MessageTemplate::where('is_active', 1)->orderBy('name')->orderBy('channel')->get();
         $selected = $request->filled('template')

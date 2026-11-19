@@ -7,6 +7,7 @@ use App\Services\TemplateRenderer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -103,7 +104,7 @@ class TemplateController extends Controller
 
         $unknown = $this->renderer->unknownPlaceholders(($data['subject'] ?? '')."\n".$data['body']);
         if ($unknown !== []) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'body' => 'Unknown placeholder(s): '.implode(', ', array_map(fn ($p) => '{{'.$p.'}}', $unknown))
                     .'. Allowed: '.implode(', ', array_map(fn ($p) => '{{'.$p.'}}', array_keys(MessageTemplate::PLACEHOLDERS))).'.',
             ]);
