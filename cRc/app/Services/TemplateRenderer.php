@@ -46,7 +46,7 @@ class TemplateRenderer
      */
     public function panelData(Request $request, ?Contact $contact, ?Ticket $ticket): array
     {
-        $templates = MessageTemplate::where('is_active', 1)->orderBy('name')->orderBy('channel')->get();
+        $templates = MessageTemplate::active()->orderBy('name')->orderBy('channel')->get();
         $selected = $request->filled('template')
             ? $templates->firstWhere('template_id', (int) $request->query('template'))
             : null;

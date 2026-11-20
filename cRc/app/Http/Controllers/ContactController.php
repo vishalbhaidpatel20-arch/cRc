@@ -29,8 +29,8 @@ class ContactController extends Controller
             ->with('company')
             ->search($request->query('q'))
             ->when($request->filled('company_id'), fn ($q) => $q->where('company_id', $request->query('company_id')))
-            ->when($status === 'active', fn ($q) => $q->where('contacts.is_active', 1))
-            ->when($status === 'inactive', fn ($q) => $q->where('contacts.is_active', 0))
+            ->when($status === 'active', fn ($q) => $q->active())       // HasActiveFlag writes "contacts.is_active"
+            ->when($status === 'inactive', fn ($q) => $q->inactive())
             ->orderBy('full_name')
             ->paginate(config('crc.per_page'))
             ->withQueryString();
@@ -83,7 +83,7 @@ class ContactController extends Controller
         });
 
         // Back to the contacts list, on the page where the new contact sits (ordered by name), highlighted.
-        $before = Contact::where('is_active', 1)->where('full_name', '<', $contact->full_name)->count();
+        $before = Contact::active()->where('full_name', '<', $contact->full_name)->count();
         $page = intdiv($before, config('crc.per_page')) + 1;
 
         return redirect()->route('contacts.index', $page > 1 ? ['page' => $page] : [])
@@ -113,9 +113,9 @@ class ContactController extends Controller
 
     public function toggleActive(Contact $contact): RedirectResponse
     {
-        $contact->update(['is_active' => ! $contact->is_active]);
+        $active = $contact->toggleActive();   // from the HasActiveFlag trait
 
-        return back()->with('status', $contact->is_active ? 'Contact activated.' : 'Contact deactivated.');
+        return back()->with('status', $active ? 'Contact activated.' : 'Contact deactivated.');
     }
 
     /** Separates the contact columns from the modules and the profile's preferred time. */
@@ -153,7 +153,7 @@ class ContactController extends Controller
     private function formData(Contact $contact): array
     {
         return [
-            'companies' => Company::where('is_active', 1)
+            'companies' => Company::active()
                 ->orWhere('company_id', $contact->company_id)
                 ->orderBy('name')->get(['company_id', 'name']),
             'allModules' => ProductModule::orderBy('name')->get(['module_id', 'name']),

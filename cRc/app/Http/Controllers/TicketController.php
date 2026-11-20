@@ -71,7 +71,7 @@ class TicketController extends Controller
         return view('tickets.show', $renderer->panelData($request, $ticket->contact, $ticket) + [
             'interactions' => Interaction::with(['contact', 'user'])->where('ticket_id', $ticket->ticket_id)
                 ->orderBy('interaction_at')->orderBy('interaction_id')->get(),
-            'panelContacts' => Contact::where('company_id', $ticket->company_id)->where('is_active', 1)
+            'panelContacts' => Contact::where('company_id', $ticket->company_id)->active()
                 ->orderBy('full_name')->get(['contact_id', 'full_name']),
             'ticket' => $ticket,
             'history' => $ticket->assignments()->with(['fromUser', 'toUser', 'assignedBy'])
@@ -267,15 +267,15 @@ class TicketController extends Controller
 
     private function assignableAgents()
     {
-        return User::where('role', User::ROLE_AGENT)->where('is_active', 1)->orderBy('full_name')->get(['user_id', 'full_name']);
+        return User::where('role', User::ROLE_AGENT)->active()->orderBy('full_name')->get(['user_id', 'full_name']);
     }
 
     /** Active contacts of active companies, grouped by company name for the dropdown. */
     private function contactsByCompany()
     {
         return Contact::with('company')
-            ->where('is_active', 1)
-            ->whereHas('company', fn ($q) => $q->where('is_active', 1))
+            ->active()                                         // HasActiveFlag scope on Contact...
+            ->whereHas('company', fn ($q) => $q->active())   // ...and on Company, inside a relation query
             ->orderBy('full_name')
             ->get()
             ->groupBy(fn ($c) => $c->company->name)

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasActiveFlag;
 use App\Support\AgentAccess;
 use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Company extends Model
 {
+    use HasActiveFlag;   // active() / inactive() scopes, isActive(), toggleActive()
     /** @use HasFactory<CompanyFactory> */
     use HasFactory;
 

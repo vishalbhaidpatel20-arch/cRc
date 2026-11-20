@@ -49,7 +49,7 @@ class InteractionController extends Controller
 
         return view('interactions.index', [
             'interactions' => $interactions,
-            'users' => $user->isAdmin() ? User::where('is_active', 1)->orderBy('full_name')->get(['user_id', 'full_name']) : collect(),
+            'users' => $user->isAdmin() ? User::active()->orderBy('full_name')->get(['user_id', 'full_name']) : collect(),
         ]);
     }
 
@@ -59,7 +59,7 @@ class InteractionController extends Controller
         Gate::authorize('view', $ticket);
 
         $data = $this->validated($request);
-        $contact = Contact::where('company_id', $ticket->company_id)->where('is_active', 1)
+        $contact = Contact::where('company_id', $ticket->company_id)->active()
             ->find($request->input('contact_id'));
 
         if (! $contact) {

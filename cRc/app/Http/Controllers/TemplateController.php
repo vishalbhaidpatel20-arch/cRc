@@ -26,7 +26,7 @@ class TemplateController extends Controller
     /** Redirect to the (default, active) list page where this template sits, so its highlighted row is visible. */
     private function listRedirect(MessageTemplate $template)
     {
-        $position = $this->ordered()->where('is_active', 1)->pluck('template_id')->search($template->template_id);
+        $position = $this->ordered()->active()->pluck('template_id')->search($template->template_id);
         $page = $position === false ? 1 : intdiv($position, config('crc.per_page')) + 1;
 
         return redirect()->route('templates.index', $page > 1 ? ['page' => $page] : []);
@@ -40,8 +40,8 @@ class TemplateController extends Controller
         $templates = MessageTemplate::query()
             ->when(in_array($request->query('channel'), MessageTemplate::CHANNELS, true), fn ($q) => $q->where('channel', $request->query('channel')))
             ->when(in_array($request->query('category'), MessageTemplate::CATEGORIES, true), fn ($q) => $q->where('category', $request->query('category')))
-            ->when($status === 'active', fn ($q) => $q->where('is_active', 1))
-            ->when($status === 'inactive', fn ($q) => $q->where('is_active', 0))
+            ->when($status === 'active', fn ($q) => $q->active())   // scopes from the HasActiveFlag trait
+            ->when($status === 'inactive', fn ($q) => $q->inactive())
             ->orderBy('category')->orderBy('name')->orderBy('channel')->orderBy('template_id')
             ->paginate(config('crc.per_page'))
             ->withQueryString();
@@ -79,9 +79,9 @@ class TemplateController extends Controller
 
     public function toggleActive(MessageTemplate $template): RedirectResponse
     {
-        $template->update(['is_active' => ! $template->is_active]);
+        $active = $template->toggleActive();   // from the HasActiveFlag trait
 
-        return back()->with('status', $template->is_active ? 'Template activated.' : 'Template deactivated.');
+        return back()->with('status', $active ? 'Template activated.' : 'Template deactivated.');
     }
 
     private function validated(Request $request, ?MessageTemplate $template = null): array

@@ -56,9 +56,9 @@ class SendTicketCompletedNotification implements ShouldBeUnique, ShouldQueue
             ->orderByDesc('assigned_at')->orderByDesc('assignment_id')
             ->first()?->assignedBy;
 
-        $recipients = ($assigner && $assigner->isAdmin() && $assigner->is_active)
+        $recipients = ($assigner && $assigner->isAdmin() && $assigner->isActive())
             ? collect([$assigner])
-            : User::where('role', User::ROLE_ADMIN)->where('is_active', 1)->get();
+            : User::where('role', User::ROLE_ADMIN)->active()->get();
 
         Notification::send($recipients, new TicketCompleted($ticket, $agent));
     }

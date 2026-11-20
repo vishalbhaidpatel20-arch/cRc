@@ -19,6 +19,9 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   Tables mostly have only `created_at`, so models use `$timestamps = false`.
 - Users: `password_hash` (not `password`), `full_name` (not `name`), no remember token. `User::getAuthPassword()`
   maps the column. `role` is `admin` or `agent`. Use `$user->homeRoute()` for the post-login redirect: login ALWAYS lands on the dashboard (no `intended()`, the remembered page is dropped).
+- Models with `is_active` (Company, Contact, MessageTemplate, User) use the `App\Models\Concerns\HasActiveFlag` trait: write
+  `Model::active()` / `->inactive()`, `$model->isActive()`, `$model->toggleActive()`, not `where('is_active', 1)` (except in
+  `Rule::exists`, raw `DB::table` and collections, which a model trait cannot reach). Test: `tests/Unit/Models/HasActiveFlagTest.php`.
 - Never hard-delete users, companies or contacts: deactivate with `is_active`. FKs use RESTRICT for history,
   CASCADE for child rows, SET NULL for optional links (see `database/sql/01_schema.sql`).
 - Deleting an agent (`AccountRemoval`, admin Users page or the agent's own Account page) is a SOFT delete: `User` uses

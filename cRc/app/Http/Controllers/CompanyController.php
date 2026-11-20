@@ -21,10 +21,10 @@ class CompanyController extends Controller
         $status = $request->query('status', 'active');
 
         $companies = Company::query()
-            ->withCount(['contacts' => fn ($q) => $q->where('is_active', 1)])
+            ->withCount(['contacts' => fn ($q) => $q->active()])   // scopes from the HasActiveFlag trait
             ->search($request->query('q'))
-            ->when($status === 'active', fn ($q) => $q->where('is_active', 1))
-            ->when($status === 'inactive', fn ($q) => $q->where('is_active', 0))
+            ->when($status === 'active', fn ($q) => $q->active())
+            ->when($status === 'inactive', fn ($q) => $q->inactive())
             ->orderBy('name')
             ->paginate(config('crc.per_page'))
             ->withQueryString();
@@ -59,7 +59,7 @@ class CompanyController extends Controller
 
         // Back to the list, on the page where the new company sits (list is ordered by name),
         // with the row highlighted so it is obvious it was added.
-        $before = Company::where('is_active', 1)->where('name', '<', $company->name)->count();
+        $before = Company::active()->where('name', '<', $company->name)->count();
         $page = intdiv($before, config('crc.per_page')) + 1;
 
         return redirect()->route('companies.index', $page > 1 ? ['page' => $page] : [])
@@ -81,9 +81,9 @@ class CompanyController extends Controller
 
     public function toggleActive(Company $company): RedirectResponse
     {
-        $company->update(['is_active' => ! $company->is_active]);
+        $active = $company->toggleActive();   // from the HasActiveFlag trait
 
-        return back()->with('status', $company->is_active ? 'Company activated.' : 'Company deactivated.');
+        return back()->with('status', $active ? 'Company activated.' : 'Company deactivated.');
     }
 
     private function validated(Request $request, ?Company $company = null): array

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasActiveFlag;
 use App\Support\AgentAccess;
 use Database\Factories\ContactFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -13,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Contact extends Model
 {
+    use HasActiveFlag;   // active() / inactive() scopes, isActive(), toggleActive()
     /** @use HasFactory<ContactFactory> */
     use HasFactory;
 

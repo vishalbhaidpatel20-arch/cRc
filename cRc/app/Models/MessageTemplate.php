@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasActiveFlag;
 use Database\Factories\MessageTemplateFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class MessageTemplate extends Model
 {
+    use HasActiveFlag;   // active() / inactive() scopes, isActive(), toggleActive()
     /** @use HasFactory<MessageTemplateFactory> */
     use HasFactory;
 

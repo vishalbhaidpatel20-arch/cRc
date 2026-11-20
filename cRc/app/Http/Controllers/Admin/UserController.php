@@ -44,7 +44,7 @@ class UserController extends Controller
             'users' => $users,
             // Soft-deleted agents, newest first, for the "Deleted agents" list with its Restore buttons.
             'deleted' => User::onlyTrashed()->where('role', User::ROLE_AGENT)->orderByDesc('deleted_at')->orderBy('user_id')->get(),
-            'companies' => Company::where('is_active', 1)->orderBy('name')->get(),   // for the pop-up
+            'companies' => Company::active()->orderBy('name')->get(),   // for the pop-up
         ]);
     }
 
@@ -84,7 +84,7 @@ class UserController extends Controller
     public function create(): View
     {
         return view('admin.users.create', [
-            'companies' => Company::where('is_active', 1)->orderBy('name')->get(),
+            'companies' => Company::active()->orderBy('name')->get(),
         ]);
     }
 
