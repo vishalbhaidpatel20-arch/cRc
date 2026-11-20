@@ -219,6 +219,7 @@ class PopupFormsTest extends TestCase
     public function test_an_agent_creating_a_ticket_sees_it_on_their_list(): void
     {
         $contact = Contact::factory()->create();
+        $this->workAt($this->agent, $contact);   // agents open tickets only for contacts of companies they work with
 
         $this->actingAs($this->agent)->post(route('tickets.store'), [
             'contact_id' => $contact->contact_id, 'topic' => 'query', 'priority' => 'low', 'title' => 'Agent pop-up ticket', '_modal' => 'ticket',
@@ -258,9 +259,11 @@ class PopupFormsTest extends TestCase
         $other = User::factory()->agent()->create();
         Ticket::factory()->count(30)->assignedTo($other)->priority('critical')->create();   // not visible to $agent
         Ticket::factory()->count(30)->assignedTo($this->agent)->priority('critical')->resolved()->create();   // resolved: not in the list
+        $contact = Contact::factory()->create();
+        $this->workAt($this->agent, $contact);
 
         $this->actingAs($this->agent)->post(route('tickets.store'), [
-            'contact_id' => Contact::factory()->create()->contact_id, 'topic' => 'query', 'priority' => 'low', 'title' => 'Mine alone',
+            'contact_id' => $contact->contact_id, 'topic' => 'query', 'priority' => 'low', 'title' => 'Mine alone',
         ])->assertRedirect(route('tickets.index'));
     }
 
@@ -280,6 +283,7 @@ class PopupFormsTest extends TestCase
     public function test_new_ticket_links_open_the_popup_with_the_contact_selected(): void
     {
         $contact = Contact::factory()->create(['full_name' => 'Linked Person']);
+        $this->workAt($this->agent, $contact);
 
         $this->actingAs($this->agent)->get(route('contacts.show', $contact))
             ->assertSee(e(route('tickets.index', ['new' => 1, 'contact_id' => $contact->contact_id])), false);
@@ -407,7 +411,10 @@ class PopupFormsTest extends TestCase
 
     public function test_company_page_has_no_edit_popup_for_agents(): void
     {
-        $this->actingAs($this->agent)->get(route('companies.show', Company::factory()->create()))
+        $company = Company::factory()->create();
+        $this->workAt($this->agent, $company);
+
+        $this->actingAs($this->agent)->get(route('companies.show', $company))
             ->assertOk()->assertDontSee('company-edit-modal')->assertDontSee('<dialog', false);
     }
 
@@ -431,7 +438,10 @@ class PopupFormsTest extends TestCase
 
     public function test_contact_page_has_no_edit_popup_for_agents(): void
     {
-        $this->actingAs($this->agent)->get(route('contacts.show', Contact::factory()->create()))
+        $contact = Contact::factory()->create();
+        $this->workAt($this->agent, $contact);
+
+        $this->actingAs($this->agent)->get(route('contacts.show', $contact))
             ->assertOk()->assertDontSee('contact-edit-modal')->assertDontSee('Edit contact');
     }
 

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Company;
 use App\Models\Contact;
+use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -43,24 +44,59 @@ class CompanyContactTest extends TestCase
         $this->get(route('companies.create'))->assertRedirect(route('login'));
     }
 
-    public function test_agents_can_view_all_companies_and_contacts(): void
+    public function test_agents_see_only_companies_and_contacts_of_their_tickets(): void
     {
         $company = Company::factory()->create(['name' => 'Visible Co']);
         $contact = Contact::factory()->for($company)->create(['full_name' => 'Visible Person']);
-        $restricted = $this->agent(['all_companies' => false]);
+        $hidden = Company::factory()->create(['name' => 'Hidden Co']);
+        $hiddenContact = Contact::factory()->for($hidden)->create(['full_name' => 'Hidden Person']);
+        $agent = $this->agent();
+        $this->workAt($agent, $contact);
 
-        $this->actingAs($restricted);
-        $this->get(route('companies.index'))->assertOk()->assertSee('Visible Co');
+        $this->actingAs($agent);
+        $this->get(route('companies.index'))->assertOk()->assertSee('Visible Co')->assertDontSee('Hidden Co');
         $this->get(route('companies.show', $company))->assertOk()->assertSee('Visible Person');
-        $this->get(route('contacts.index'))->assertOk()->assertSee('Visible Person');
+        $this->get(route('contacts.index'))->assertOk()->assertSee('Visible Person')->assertDontSee('Hidden Person');
         $this->get(route('contacts.show', $contact))->assertOk()->assertSee($contact->email);
+
+        // Another company's pages are a 404 (not 403), like another agent's ticket.
+        $this->get(route('companies.show', $hidden))->assertNotFound();
+        $this->get(route('contacts.show', $hiddenContact))->assertNotFound();
+    }
+
+    public function test_reassigning_the_ticket_moves_the_access(): void
+    {
+        $contact = Contact::factory()->create(['full_name' => 'Moving Person']);
+        $alice = $this->agent();
+        $bob = $this->agent();
+        $ticket = Ticket::factory()->assignedTo($alice)->create(['contact_id' => $contact->contact_id]);
+
+        $this->actingAs($alice)->get(route('contacts.index'))->assertSee('Moving Person');
+        Ticket::withoutGlobalScopes()->whereKey($ticket->ticket_id)->update(['assigned_to' => $bob->user_id]);
+
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($alice)->get(route('contacts.index'))->assertDontSee('Moving Person');
+        $this->get(route('contacts.show', $contact))->assertNotFound();
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($bob)->get(route('contacts.show', $contact))->assertOk();
+    }
+
+    public function test_an_agent_with_no_tickets_sees_no_companies_or_contacts(): void
+    {
+        Contact::factory()->create(['full_name' => 'Nobody Sees Me']);
+        $this->actingAs($this->agent());
+
+        $this->get(route('contacts.index'))->assertOk()->assertDontSee('Nobody Sees Me');
+        $this->get(route('companies.index'))->assertOk()->assertSee('No companies found');
     }
 
     public function test_agents_cannot_create_edit_or_deactivate(): void
     {
         $company = Company::factory()->create();
         $contact = Contact::factory()->for($company)->create();
-        $this->actingAs($this->agent());
+        $agent = $this->agent();
+        $this->workAt($agent, $contact);   // a company they can see: the role check (403), not the 404, answers
+        $this->actingAs($agent);
 
         $this->get(route('companies.create'))->assertForbidden();
         $this->post(route('companies.store'), ['name' => 'Hack Co'])->assertForbidden();
@@ -83,7 +119,9 @@ class CompanyContactTest extends TestCase
     public function test_agents_do_not_see_admin_buttons(): void
     {
         $company = Company::factory()->create();
-        $this->actingAs($this->agent());
+        $agent = $this->agent();
+        $this->workAt($agent, $company);
+        $this->actingAs($agent);
 
         $this->get(route('companies.index'))->assertDontSee('+ New company');
         $this->get(route('companies.show', $company))->assertDontSee('Deactivate')->assertDontSee('Edit');
@@ -222,11 +260,13 @@ class CompanyContactTest extends TestCase
     public function test_contacts_are_searchable_by_name_email_phone_and_company(): void
     {
         $acme = Company::factory()->create(['name' => 'Zebra Traders']);
-        Contact::factory()->for($acme)->create([
+        $quentin = Contact::factory()->for($acme)->create([
             'full_name' => 'Quentin Findme', 'email' => 'quentin@findme.example', 'phone' => '9876501234',
         ]);
-        Contact::factory()->create(['full_name' => 'Other Person']);
-        $this->actingAs($this->agent());
+        $other = Contact::factory()->create(['full_name' => 'Other Person']);
+        $agent = $this->agent();
+        $this->workAt($agent, $quentin, $other);
+        $this->actingAs($agent);
 
         foreach (['Quentin', 'findme.example', '98765012', 'Zebra'] as $term) {
             $this->get(route('contacts.index', ['q' => $term]))
@@ -240,7 +280,9 @@ class CompanyContactTest extends TestCase
         $b = Company::factory()->create();
         Contact::factory()->for($a)->create(['full_name' => 'In Company A']);
         Contact::factory()->for($b)->create(['full_name' => 'In Company B']);
-        $this->actingAs($this->agent());
+        $agent = $this->agent();
+        $this->workAt($agent, $a, $b);
+        $this->actingAs($agent);
 
         $this->get(route('contacts.index', ['company_id' => $a->company_id]))
             ->assertSee('In Company A')->assertDontSee('In Company B');
@@ -250,8 +292,10 @@ class CompanyContactTest extends TestCase
     {
         $match = Company::factory()->create(['name' => 'Searchable Ltd', 'city' => 'Rajkot']);
         Contact::factory()->count(3)->for($match)->create();
-        Company::factory()->create(['name' => 'Different Inc']);
-        $this->actingAs($this->agent());
+        $different = Company::factory()->create(['name' => 'Different Inc']);
+        $agent = $this->agent();
+        $this->workAt($agent, $match, $different);
+        $this->actingAs($agent);
 
         $this->get(route('companies.index', ['q' => 'Rajkot']))
             ->assertOk()->assertSee('Searchable Ltd')->assertDontSee('Different Inc');
@@ -259,8 +303,10 @@ class CompanyContactTest extends TestCase
 
     public function test_search_treats_percent_signs_literally(): void
     {
-        Contact::factory()->create(['full_name' => 'Plain Person']);
-        $this->actingAs($this->agent());
+        $plain = Contact::factory()->create(['full_name' => 'Plain Person']);
+        $agent = $this->agent();
+        $this->workAt($agent, $plain);
+        $this->actingAs($agent);
 
         $this->get(route('contacts.index', ['q' => '%']))->assertDontSee('Plain Person');
     }

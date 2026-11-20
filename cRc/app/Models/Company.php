@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\AgentAccess;
 use Database\Factories\CompanyFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -24,6 +26,16 @@ class Company extends Model
             'is_active' => 'boolean',
             'created_at' => 'datetime',
         ];
+    }
+
+    /** Agents only see companies that have a ticket assigned to them (App\Support\AgentAccess). Admins see all. */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('agent_visibility', function (Builder $query) {
+            if ($agent = AgentAccess::agent()) {
+                AgentAccess::scopeCompanies($query, $agent);
+            }
+        });
     }
 
     public function contacts(): HasMany

@@ -31,8 +31,22 @@
         footer.site .f-copy .who-role{color:#fff;background:#2f80ed;border-radius:999px;padding:.1rem .6rem;font-size:.75rem;text-transform:uppercase}
         /* Pages with a data grid, and the dashboards, use the full width of the window */
         main:has(.grid-skeleton:not([data-page-size])),main:has(table[data-grid]:not([data-page-size])),main:has(.grid-host:not([data-page-size])),main:has(.dash-hero),main:has(.contact-grid){max-width:none;padding:0 1.5rem}
-        .grid-host{width:100%;margin-top:1rem;--ag-font-size:14px}
-        .grid-host .row-new{background:#f0fbf4}
+        .grid-host{width:100%;margin-top:1rem;--ag-font-size:14px;border-radius:12px;box-shadow:0 1px 3px #12307a14,0 6px 18px #12307a0f}
+        .grid-host .row-new{background:#eafaf1}
+        /* Grid cells: blue links (ticket numbers, names), buttons that fit the row */
+        .grid-host .ag-cell a:not(.btn):not(.pill){color:#1d5fd1;font-weight:600;text-decoration:none}
+        .grid-host .ag-cell a:not(.btn):not(.pill):hover{color:#12307a;text-decoration:underline}
+        .grid-host .ag-cell a.pill{text-decoration:none}
+        .grid-host .ag-cell .btn{padding:.35rem .8rem;font-size:.82rem;border-radius:8px}
+        .grid-host .ag-header-cell-text{letter-spacing:.01em}
+        .grid-host .ag-paging-panel{color:#52606d;font-size:.85rem}
+        .grid-host .ag-paging-button:not(.ag-disabled){color:#12307a}
+        /* Plain-table fallback (no JavaScript) and the "No ... found" message: same look as the grid */
+        table.list{background:#fff;border:1px solid #e3e9f5;border-radius:12px;border-collapse:separate;border-spacing:0;overflow:hidden}
+        table.list th{background:#f2f6fd;color:#12307a;font-weight:600;border-bottom:1px solid #e3e9f5;padding:.7rem .8rem}
+        table.list td{border-bottom:1px solid #edf1f8;padding:.65rem .8rem}
+        table.list tr:last-child td{border-bottom:0}
+        table.list td[colspan].muted{text-align:center;padding:1.6rem .8rem;font-style:italic}
         .card{background:#fff;border-radius:10px;padding:1.5rem;box-shadow:0 1px 3px #0001}
         .error{color:#b42318;font-size:.85rem;margin-top:.3rem}
         nav a{color:#fff;margin-left:1.2rem;text-decoration:none;font-weight:500;padding:.35rem .7rem;border-radius:8px;transition:background .15s,color .15s,box-shadow .15s}
@@ -75,6 +89,11 @@
         .pill.query{background:#dbe8ff;color:#1d4e9e}
         .pill.follow_up,.pill.fu{background:#fbe3b0;color:#7a5200}
         .pill.done{background:#e4e7eb;color:#52606d}
+        /* Ticket status pills (st-<status>) */
+        .pill.st-open{background:#dbe8ff;color:#1d4e9e}
+        .pill.st-in_progress{background:#e1dcff;color:#4a3fb0}
+        .pill.st-waiting{background:#fbe3b0;color:#7a5200}
+        .pill.st-resolved{background:#cdeede;color:#0b5b3a}
         .btn.outline{background:#fff;color:#1f2933;border:1px solid #cbd2d9}
         .btn.block{display:block;width:100%;text-align:center}
         .log-panel{border:1px solid #e5e5ea;border-radius:12px;padding:1rem 1.1rem}
@@ -113,10 +132,11 @@
            while the grid loads, so the unpaginated rows cannot flash. Without JavaScript the table shows instead. */
         html.js .grid-skeleton ~ table[data-grid]{display:none}
         html:not(.js) .grid-skeleton{display:none}
-        .grid-skeleton{width:100%;margin-top:1rem;border:1px solid #dde1e6;border-radius:8px;background:#fff;overflow:hidden}
-        .grid-skeleton .gs-head{height:49px;background:#f8f9fb;border-bottom:1px solid #dde1e6}
-        .grid-skeleton .gs-row{height:56px;border-bottom:1px solid #eef0f3;display:flex;align-items:center;padding:0 16px}
-        .grid-skeleton .gs-row span{display:block;width:60%;height:10px;border-radius:5px;background:#eef0f3}
+        .grid-skeleton{width:100%;margin-top:1rem;border:1px solid #e3e9f5;border-radius:12px;background:#fff;overflow:hidden}
+        .grid-skeleton .gs-head{height:49px;background:#f2f6fd;border-bottom:1px solid #e3e9f5}
+        .grid-skeleton .gs-row{height:56px;border-bottom:1px solid #edf1f8;display:flex;align-items:center;padding:0 16px}
+        .grid-skeleton .gs-row span{display:block;width:60%;height:10px;border-radius:5px;background:linear-gradient(90deg,#eef2f8 25%,#e2e9f5 50%,#eef2f8 75%);background-size:200% 100%;animation:gs-shine 1.2s linear infinite}
+        @keyframes gs-shine{to{background-position:-200% 0}}
         /* Notification bell (partials/notification-bell.blade.php, js/notifications.js) */
         .hright{display:flex;align-items:center;gap:1rem}
         .bell{position:relative}
@@ -194,6 +214,29 @@
         .feed-row:last-of-type{border-bottom:0}
         a.feed-link:hover{background:#faf9ff}
         .feed-main{min-width:0;overflow-wrap:anywhere}
+        /* Left sidebar (partials/sidebar, js/sidebar.js): always visible beside the content, sticks while scrolling */
+        .app-body{display:flex;align-items:flex-start;flex:1 0 auto;width:100%}
+        .app-body > main{flex:1 1 0;min-width:0}
+        /* 96px = header padding (1.5rem) x 2 + logo (48px): the icons sit in the same column as the header logo */
+        .side-menu{position:sticky;top:0;flex:0 0 96px;width:96px;background:linear-gradient(180deg,#f5f8ff,#fff 60%);border-right:1px solid #e3e9f5;padding:1rem 0;align-self:stretch;display:flex;flex-direction:column;align-items:center;gap:.55rem;z-index:40}
+        .side-head{font-size:.66rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#5b6b86;margin-bottom:.15rem}
+        /* One tile per status, in that status's colour (same as the table pills): soft tile + coloured icon, a count badge,
+           a label under it. Hover lifts it; the active one is filled with a white icon and a bar on the left. */
+        .side-link{--c:#12307a;--bg:#e6ecf8;position:relative;display:flex;flex-direction:column;align-items:center;gap:.28rem;width:88px;padding:.45rem 0 .5rem;border-radius:12px;text-decoration:none;transition:background .15s}
+        .side-link.st-open{--c:#1d6fc4;--bg:#e1efff}
+        .side-link.st-in_progress{--c:#5B4BDB;--bg:#ece9ff}
+        .side-link.st-waiting{--c:#b26b00;--bg:#fff1d6}
+        .side-link.st-resolved{--c:#0b7a4b;--bg:#e1f5ea}
+        .side-ico{position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:14px;color:var(--c);background:var(--bg);transition:transform .15s,box-shadow .15s,background .15s,color .15s}
+        .side-label{font-size:.72rem;font-weight:600;line-height:1.15;text-align:center;color:#3e4c59}
+        .side-link:hover{background:#ffffffb3}
+        .side-link:hover .side-ico,.side-link:focus-visible .side-ico{transform:translateY(-2px);box-shadow:0 6px 14px #12307a26}
+        .side-link:focus-visible{outline:2px solid var(--c);outline-offset:1px}
+        .side-link.active{background:#fff;box-shadow:0 2px 10px #12307a14}
+        .side-link.active::before{content:"";position:absolute;left:-4px;top:12px;bottom:12px;width:4px;border-radius:0 4px 4px 0;background:var(--c)}
+        .side-link.active .side-ico{background:var(--c);color:#fff;box-shadow:0 6px 14px #12307a33}
+        .side-link.active .side-label{color:var(--c);font-weight:700}
+        @media (max-width:860px){.app-body{flex-direction:column}.side-menu{position:static;width:100%;flex:none;flex-direction:row;flex-wrap:wrap;justify-content:center;padding:.7rem 0 .5rem;border-right:0;border-bottom:1px solid #e3e9f5;background:#f5f8ff}.side-head{display:none}.side-link{width:76px}.side-link.active::before{display:none}}
         /* While a partial refresh is in flight (js/partial.js) */
         html.ajax-busy,html.ajax-busy *{cursor:progress}
         html.ajax-busy [data-region]{opacity:.7;transition:opacity .15s}
@@ -234,7 +277,13 @@
         </div>
     </header>
 @endauth
+{{-- Signed-in pages: the left sidebar and the content side by side. <main> stays the element partial.js swaps. --}}
+<div class="app-body">
+@auth
+    @include('partials.sidebar')
+@endauth
 <main>@yield('content')</main>
+</div>
 <footer class="site">
     <div class="f-row">
         <div class="f-brand">
@@ -255,6 +304,7 @@
 <script src="{{ asset('js/partial.js') }}" defer></script>
 @auth
     <script src="{{ asset('js/notifications.js') }}" defer></script>
+    <script src="{{ asset('js/sidebar.js') }}" defer></script>
 @endauth
 </body>
 </html>

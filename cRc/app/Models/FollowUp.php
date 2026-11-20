@@ -21,9 +21,10 @@ class FollowUp extends Model
         return ['due_date' => 'date', 'completed_at' => 'datetime'];
     }
 
+    /** Unscoped: an agent's own follow-up keeps its contact's name even after the ticket moved to someone else. */
     public function contact(): BelongsTo
     {
-        return $this->belongsTo(Contact::class, 'contact_id', 'contact_id');
+        return $this->belongsTo(Contact::class, 'contact_id', 'contact_id')->withoutGlobalScope('agent_visibility');
     }
 
     public function interaction(): BelongsTo

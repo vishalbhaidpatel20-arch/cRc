@@ -29,6 +29,7 @@ class ContactPageTest extends TestCase
         $this->admin = User::factory()->admin()->create();
         $this->alice = User::factory()->agent()->create(['full_name' => 'Alice Agent']);
         $this->bob = User::factory()->agent()->create(['full_name' => 'Bob Agent']);
+        $this->agentsWorkAtEveryNewContact($this->alice, $this->bob);   // these tests are about the page, not access
     }
 
     private function logPayload(array $over = []): array
@@ -80,7 +81,7 @@ class ContactPageTest extends TestCase
     public function test_log_form_comes_before_the_history_and_both_are_present(): void
     {
         $contact = Contact::factory()->create();
-        Interaction::factory()->create(['contact_id' => $contact->contact_id, 'summary' => 'An earlier chat']);
+        Interaction::factory()->create(['contact_id' => $contact->contact_id, 'user_id' => $this->alice->user_id, 'summary' => 'An earlier chat']);
 
         $html = $this->actingAs($this->alice)->get(route('contacts.show', $contact))->getContent();
 
@@ -96,7 +97,7 @@ class ContactPageTest extends TestCase
     public function test_history_shows_the_count_and_links_to_the_full_log_when_long(): void
     {
         $contact = Contact::factory()->create(['full_name' => 'Busy Bee']);
-        Interaction::factory()->count(17)->create(['contact_id' => $contact->contact_id]);
+        Interaction::factory()->count(17)->create(['contact_id' => $contact->contact_id, 'user_id' => $this->alice->user_id]);
 
         $this->actingAs($this->alice)->get(route('contacts.show', $contact))
             ->assertSee('17 conversations')->assertSee('See all 17 conversations with Busy Bee');
@@ -105,8 +106,8 @@ class ContactPageTest extends TestCase
     public function test_history_row_labels(): void
     {
         $contact = Contact::factory()->create();
-        Interaction::factory()->create(['contact_id' => $contact->contact_id, 'channel' => 'whatsapp', 'direction' => 'inbound', 'topic' => 'bug', 'summary' => 'WA row', 'interaction_at' => now()->subDay()->setTime(10, 45)]);
-        Interaction::factory()->create(['contact_id' => $contact->contact_id, 'channel' => 'meeting', 'direction' => 'outbound', 'topic' => 'customization', 'summary' => 'Meeting row', 'interaction_at' => now()->subDays(20)]);
+        Interaction::factory()->create(['contact_id' => $contact->contact_id, 'user_id' => $this->alice->user_id, 'channel' => 'whatsapp', 'direction' => 'inbound', 'topic' => 'bug', 'summary' => 'WA row', 'interaction_at' => now()->subDay()->setTime(10, 45)]);
+        Interaction::factory()->create(['contact_id' => $contact->contact_id, 'user_id' => $this->alice->user_id, 'channel' => 'meeting', 'direction' => 'outbound', 'topic' => 'customization', 'summary' => 'Meeting row', 'interaction_at' => now()->subDays(20)]);
 
         $this->actingAs($this->alice)->get(route('contacts.show', $contact))
             ->assertSee('WhatsApp, inbound')->assertSee('Meeting, outbound')
@@ -156,7 +157,7 @@ class ContactPageTest extends TestCase
     public function test_inactive_contact_hides_the_log_form_but_keeps_the_history(): void
     {
         $contact = Contact::factory()->inactive()->create();
-        Interaction::factory()->create(['contact_id' => $contact->contact_id, 'summary' => 'Old chat kept']);
+        Interaction::factory()->create(['contact_id' => $contact->contact_id, 'user_id' => $this->alice->user_id, 'summary' => 'Old chat kept']);
 
         $this->actingAs($this->alice)->get(route('contacts.show', $contact))
             ->assertDontSee('Log a conversation')->assertSee('Old chat kept')->assertSee('Inactive');
@@ -241,8 +242,8 @@ class ContactPageTest extends TestCase
     public function test_overdue_done_and_pending_tags_in_the_history(): void
     {
         $contact = Contact::factory()->create();
-        $late = Interaction::factory()->create(['contact_id' => $contact->contact_id, 'summary' => 'late one']);
-        $done = Interaction::factory()->create(['contact_id' => $contact->contact_id, 'summary' => 'done one']);
+        $late = Interaction::factory()->create(['contact_id' => $contact->contact_id, 'user_id' => $this->alice->user_id, 'summary' => 'late one']);
+        $done = Interaction::factory()->create(['contact_id' => $contact->contact_id, 'user_id' => $this->alice->user_id, 'summary' => 'done one']);
         FollowUp::create(['contact_id' => $contact->contact_id, 'interaction_id' => $late->interaction_id, 'assigned_to' => $this->alice->user_id, 'due_date' => today()->subDays(2), 'description' => 'x', 'status' => 'pending']);
         FollowUp::create(['contact_id' => $contact->contact_id, 'interaction_id' => $done->interaction_id, 'assigned_to' => $this->alice->user_id, 'due_date' => today()->subDays(2), 'description' => 'y', 'status' => 'done']);
 

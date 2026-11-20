@@ -21,6 +21,20 @@ class Ticket extends Model
 
     public const STATUSES = ['open', 'in_progress', 'waiting', 'resolved'];
 
+    /** Final statuses: the work is over. Everything else is open work. */
+    public const CLOSED_STATUSES = ['resolved'];
+
+    /** Display name of a status: in_progress => "In progress". */
+    public static function statusLabel(string $status): string
+    {
+        return ucfirst(str_replace('_', ' ', $status));
+    }
+
+    public function isClosed(): bool
+    {
+        return in_array($this->status, self::CLOSED_STATUSES, true);
+    }
+
     protected $primaryKey = 'ticket_id';
 
     protected $fillable = [
@@ -54,14 +68,15 @@ class Ticket extends Model
         });
     }
 
+    /** Unscoped: the company of a ticket the viewer may see (agents always see their own tickets' companies anyway). */
     public function company(): BelongsTo
     {
-        return $this->belongsTo(Company::class, 'company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'company_id')->withoutGlobalScope('agent_visibility');
     }
 
     public function contact(): BelongsTo
     {
-        return $this->belongsTo(Contact::class, 'contact_id', 'contact_id');
+        return $this->belongsTo(Contact::class, 'contact_id', 'contact_id')->withoutGlobalScope('agent_visibility');
     }
 
     public function assignee(): BelongsTo
@@ -76,13 +91,13 @@ class Ticket extends Model
 
     public function isOverdue(): bool
     {
-        return $this->due_at !== null && $this->status !== 'resolved' && $this->due_at->isPast();
+        return $this->due_at !== null && ! $this->isClosed() && $this->due_at->isPast();
     }
 
-    /** Anything not resolved. */
+    /** Open work: anything not closed (open, in progress, waiting). */
     public function scopeOpen(Builder $query): Builder
     {
-        return $query->where('tickets.status', '!=', 'resolved');
+        return $query->whereNotIn('tickets.status', self::CLOSED_STATUSES);
     }
 
     /** critical, high, medium, low. Combine with ->orderBy('tickets.created_at') for the queue order. */

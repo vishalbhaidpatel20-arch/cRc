@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Support\AgentAccess;
 use Database\Factories\ContactFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,9 +39,20 @@ class Contact extends Model
         ];
     }
 
+    /** Agents only see contacts of companies that have a ticket assigned to them (App\Support\AgentAccess). */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('agent_visibility', function (Builder $query) {
+            if ($agent = AgentAccess::agent()) {
+                AgentAccess::scopeContacts($query, $agent);
+            }
+        });
+    }
+
+    /** Unscoped: a visible contact's company is always visible anyway, and this never returns null in a view. */
     public function company(): BelongsTo
     {
-        return $this->belongsTo(Company::class, 'company_id', 'company_id');
+        return $this->belongsTo(Company::class, 'company_id', 'company_id')->withoutGlobalScope('agent_visibility');
     }
 
     public function profile(): HasOne

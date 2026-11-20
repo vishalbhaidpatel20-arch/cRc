@@ -17,7 +17,7 @@
     <div data-region="ticket">
     <p>
         <span class="tag {{ $ticket->priority }}">{{ $ticket->priority }}</span>
-        <span class="tag">{{ str_replace('_', ' ', $ticket->status) }}</span>
+        <span class="tag">{{ \App\Models\Ticket::statusLabel($ticket->status) }}</span>
         <span class="tag">{{ $ticket->topic }}</span>
     </p>
 
@@ -81,6 +81,7 @@
         'contactChoices' => $panelContacts,
         'defaultContactId' => $ticket->contact_id,
         'defaultTopic' => $ticket->topic,
+        'currentStatus' => $ticket->status,
     ])
     </div>
 

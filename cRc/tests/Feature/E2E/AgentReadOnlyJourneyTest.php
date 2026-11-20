@@ -30,7 +30,8 @@ class AgentReadOnlyJourneyTest extends TestCase
         $carol = Contact::factory()->for($acme)->create([
             'full_name' => 'Carol Clark', 'email' => 'carol@acme.example', 'phone' => '9700000001',
         ]);
-        Contact::factory()->for($hooli)->create(['full_name' => 'Dan Dixon', 'phone' => '9700000002']);
+        $dan = Contact::factory()->for($hooli)->create(['full_name' => 'Dan Dixon', 'phone' => '9700000002']);
+        $this->workAt($agent, $carol, $dan);   // the admin gave Rae (now resolved) tickets at both clients
 
         $this->loginAs($agent->email)->assertSee('Agent dashboard')->assertSee('Welcome, Read Only Rae');
 
@@ -87,23 +88,27 @@ class AgentReadOnlyJourneyTest extends TestCase
         $this->browse(route('contacts.index'))->assertSee('Log in');
     }
 
-    public function test_restricted_agent_still_sees_every_company_and_contact(): void
+    public function test_agent_sees_only_the_clients_of_tickets_the_admin_assigned_to_them(): void
     {
         $mine = Company::factory()->create(['name' => 'Assigned Co']);
         $other = Company::factory()->create(['name' => 'Unassigned Co']);
         Contact::factory()->for($mine)->create(['full_name' => 'Assigned Person']);
-        Contact::factory()->for($other)->create(['full_name' => 'Unassigned Person']);
+        $stranger = Contact::factory()->for($other)->create(['full_name' => 'Unassigned Person']);
 
-        $agent = $this->makeAgent(['all_companies' => false]);
-        $agent->companies()->sync([$mine->company_id]);
+        $agent = $this->makeAgent();
+        $this->workAt($agent, $mine);
 
         $this->loginAs($agent->email)->assertSee('Agent dashboard');
 
-        $this->browse(route('companies.index'))->assertSee('Assigned Co')->assertSee('Unassigned Co');
-        $this->browse(route('companies.show', $other))->assertOk()->assertSee('Unassigned Person');
-        $this->browse(route('contacts.index'))->assertSee('Assigned Person')->assertSee('Unassigned Person');
-        $this->browse(route('contacts.index', ['company_id' => $other->company_id]))
-            ->assertSee('Unassigned Person')->assertDontSee('Assigned Person');
-        $this->browse(route('contacts.index', ['q' => 'Unassigned']))->assertSee('Unassigned Person');
+        $this->browse(route('companies.index'))->assertSee('Assigned Co')->assertDontSee('Unassigned Co');
+        $this->browse(route('contacts.index'))->assertSee('Assigned Person')->assertDontSee('Unassigned Person');
+        $this->browse(route('contacts.index', ['q' => 'Unassigned']))->assertDontSee('Unassigned Person');
+        $this->freshRequest()->get(route('companies.show', $other))->assertNotFound();
+        $this->freshRequest()->get(route('contacts.show', $stranger))->assertNotFound();
+
+        // The admin assigns a ticket at the other client: it appears for the agent.
+        $this->workAt($agent, $stranger);
+        $this->browse(route('companies.index'))->assertSee('Unassigned Co');
+        $this->browse(route('contacts.show', $stranger))->assertOk()->assertSee('Unassigned Person');
     }
 }

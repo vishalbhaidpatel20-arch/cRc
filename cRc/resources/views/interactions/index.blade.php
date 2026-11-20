@@ -35,7 +35,7 @@
 <div data-region="results">
     <x-grid-skeleton :total="$interactions->count()" />
     <table class="list" data-grid>
-        <tr><th data-flex="1.3">When</th><th data-flex="1.5">Channel</th><th>Contact</th><th data-flex="3">Summary</th><th data-flex="1.4">Topic</th><th>Follow-up</th><th data-flex="1.6">Ticket</th><th>Logged by</th></tr>
+        <tr><th data-flex="1.3">When</th><th data-flex="1.5">Channel</th><th>Contact</th><th data-flex="3">Summary</th><th data-flex="1.4">Topic</th><th>Follow-up</th><th data-flex="1.6">Ticket</th><th data-flex="1.3">Ticket status</th><th>Logged by</th></tr>
         @forelse($interactions as $i)
             <tr id="interaction-{{ $i->interaction_id }}">
                 <td style="white-space:nowrap" title="{{ $i->interaction_at->format('d M Y H:i') }}">{{ $i->whenLabel() }}</td>
@@ -57,10 +57,16 @@
                     @elseif($i->ticket_id)<span class="pill">another agent's ticket</span>
                     @else<span class="muted">-</span>@endif
                 </td>
+                {{-- The ticket's current status. Only for tickets the viewer can see ($i->ticket goes through the Ticket scope),
+                     so another agent's ticket shows nothing, like its number above. --}}
+                <td>
+                    @if($i->ticket)<span class="pill st-{{ $i->ticket->status }}">{{ \App\Models\Ticket::statusLabel($i->ticket->status) }}</span>
+                    @else<span class="muted">-</span>@endif
+                </td>
                 <td class="muted">{{ $i->user->full_name }}</td>
             </tr>
         @empty
-            <tr><td colspan="8" class="muted">No conversations logged yet.</td></tr>
+            <tr><td colspan="9" class="muted">No conversations logged yet.</td></tr>
         @endforelse
     </table>
     {{ $interactions->links('partials.pager') }}

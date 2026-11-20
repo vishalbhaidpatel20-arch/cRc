@@ -80,12 +80,13 @@ class ConversationJourneyTest extends TestCase
         $this->assertSame(2, Interaction::where('user_id', $anna->user_id)->count());
         $this->logout();
 
-        // 5. Ben can read the log, but never sees or links to Anna's ticket; the log is append-only.
+        // 5. Ben works for the same client, but Anna's conversations are on her ticket: he sees neither them nor the
+        //    ticket. The log is append-only.
         $this->loginAs($ben->email);
-        $this->browse(route('interactions.index'))->assertSee('Peter called to ask about the export.')
-            ->assertSee("another agent's ticket", false)->assertDontSee($ticket->ticket_no);
+        $this->browse(route('interactions.index'))->assertDontSee('Peter called to ask about the export.')
+            ->assertDontSee('is working on TPS')->assertDontSee($ticket->ticket_no);
         $this->freshRequest()->get(route('tickets.show', $ticket))->assertNotFound();
-        $first = Interaction::firstOrFail();
+        $first = Interaction::withoutGlobalScopes()->firstOrFail();   // Ben is signed in and cannot see it
         $this->freshRequest()->put("/interactions/{$first->interaction_id}", ['summary' => 'rewritten'])->assertNotFound();
         $this->freshRequest()->delete("/interactions/{$first->interaction_id}")->assertNotFound();
         $this->assertNotSame('rewritten', $first->fresh()->summary);

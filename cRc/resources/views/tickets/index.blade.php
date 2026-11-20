@@ -18,9 +18,9 @@
     <form method="GET" class="filters">
         <input name="q" value="{{ request('q') }}" placeholder="Search" title="Search ticket no, title, description" autocomplete="off">
         <select name="status">
-            <option value="open" @selected($status === 'open')>Not resolved</option>
+            <option value="open" @selected($status === 'open')>All open</option>
             @foreach(\App\Models\Ticket::STATUSES as $s)
-                <option value="{{ $s }}" @selected($status === $s)>{{ str_replace('_', ' ', ucfirst($s)) }}</option>
+                <option value="{{ $s }}" @selected($status === $s)>{{ \App\Models\Ticket::statusLabel($s) }}</option>
             @endforeach
             <option value="all" @selected($status === 'all')>All</option>
         </select>
@@ -59,9 +59,9 @@
                 <td><a href="{{ route('tickets.show', $t) }}">{{ $t->ticket_no }}</a>@if($highlight === $t->ticket_id) <span class="pill green">New</span>@endif</td>
                 <td>{{ $t->title }}</td>
                 <td>{{ $t->company->name }}<br><span class="muted">{{ $t->contact->full_name }}</span></td>
-                <td>{{ $t->topic }}</td>
+                <td><span class="pill {{ $t->topic }}">{{ ucfirst($t->topic) }}</span></td>
                 <td><span class="tag {{ $t->priority }}">{{ $t->priority }}</span></td>
-                <td>{{ str_replace('_', ' ', $t->status) }}</td>
+                <td><span class="pill st-{{ $t->status }}">{{ \App\Models\Ticket::statusLabel($t->status) }}</span></td>
                 @if($isAdmin)<td>{!! $t->assignee ? e($t->assignee->full_name) : '<span class="muted">Unassigned</span>' !!}</td>@endif
                 <td class="{{ $t->isOverdue() ? 'overdue' : 'muted' }}">{{ $t->due_at?->format('d M Y') ?? '-' }}</td>
             </tr>

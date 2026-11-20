@@ -7,6 +7,7 @@ use App\Models\FollowUp;
 use App\Models\Interaction;
 use App\Models\Ticket;
 use App\Models\User;
+use App\Services\TicketCompletion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -68,7 +69,7 @@ class InteractionController extends Controller
         $this->record($request->user(), $contact, $ticket, $data);
 
         return redirect()->route('tickets.show', $ticket)->withFragment('conversations')
-            ->with('status', 'Conversation logged.');
+            ->with('status', $this->loggedMessage($ticket, $data));
     }
 
     /** Log a conversation from a contact screen. The ticket link is optional. */
@@ -91,14 +92,33 @@ class InteractionController extends Controller
             }
         }
 
+        if (! empty($data['ticket_status']) && ! $ticket) {
+            throw ValidationException::withMessages(['ticket_status' => 'Pick the ticket under "About ticket" to change its status.']);
+        }
+
         $this->record($request->user(), $contact, $ticket, $data);
 
         return redirect()->route('contacts.show', $contact)->withFragment('conversations')
-            ->with('status', 'Conversation logged.');
+            ->with('status', $this->loggedMessage($ticket, $data));
+    }
+
+    /** "Conversation logged." plus, when the status was changed with it, "TKT-0007 is now Resolved." */
+    private function loggedMessage(?Ticket $ticket, array $data): string
+    {
+        if (! $ticket || empty($data['ticket_status'])) {
+            return 'Conversation logged.';
+        }
+
+        return "Conversation logged. {$ticket->ticket_no} is now ".Ticket::statusLabel($data['ticket_status']).'.';
     }
 
     private function record(User $user, Contact $contact, ?Ticket $ticket, array $data): Interaction
     {
+        // Changing the status with the log follows the same rule as the ticket Edit form (admin, or the agent holding it).
+        if ($ticket && ! empty($data['ticket_status'])) {
+            Gate::authorize('update', $ticket);
+        }
+
         return DB::transaction(function () use ($user, $contact, $ticket, $data) {
             // user_id always comes from the session, never from the request.
             $interaction = Interaction::create([
@@ -124,6 +144,13 @@ class InteractionController extends Controller
                 ]);
             }
 
+            // Optional "Ticket status" from the log form. Saved in the same transaction, so a failed log changes nothing.
+            if ($ticket && ! empty($data['ticket_status']) && $data['ticket_status'] !== $ticket->status) {
+                $oldStatus = $ticket->status;
+                $ticket->update(['status' => $data['ticket_status']]);
+                app(TicketCompletion::class)->afterStatusChange($ticket, $oldStatus, $user);
+            }
+
             return $interaction;
         });
     }
@@ -137,6 +164,8 @@ class InteractionController extends Controller
             'summary' => ['required', 'string', 'max:5000'],
             'interaction_at' => ['nullable', 'date', 'before_or_equal:now'],
             'follow_up_on' => ['nullable', 'date', 'after_or_equal:today'],
+            // Empty = keep the ticket's status as it is.
+            'ticket_status' => ['nullable', Rule::in(Ticket::STATUSES)],
         ]);
     }
 

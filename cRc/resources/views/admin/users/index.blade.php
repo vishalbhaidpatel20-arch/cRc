@@ -37,9 +37,9 @@
             <tr @class(['row-new' => $highlight === $u->user_id]) id="user-{{ $u->user_id }}">
                 <td>{{ $u->full_name }}@if($highlight === $u->user_id) <span class="pill green">New</span>@endif</td>
                 <td>{{ $u->email }}</td>
-                <td>{{ $u->role }}</td>
+                <td><span class="pill {{ $u->isAdmin() ? 'customization' : 'query' }}">{{ ucfirst($u->role) }}</span></td>
                 <td>{{ $u->all_companies ? 'All' : 'Selected' }}</td>
-                <td>{{ $u->is_active ? 'Active' : 'Inactive' }}</td>
+                <td><span class="pill {{ $u->is_active ? 'green' : 'late' }}">{{ $u->is_active ? 'Active' : 'Inactive' }}</span></td>
                 <td>@if($u->isAgent())<button class="btn" type="submit" form="delete-user-{{ $u->user_id }}" style="background:#b42318;padding:.3rem .7rem">Delete</button>@endif</td>
             </tr>
         @empty

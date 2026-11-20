@@ -125,7 +125,7 @@ class SecurityJourneyTest extends TestCase
     {
         $admin = $this->makeAdmin();
         $agent = $this->makeAgent(['email' => 'target@example.com', 'full_name' => 'Target Agent']);
-        Company::factory()->create(['name' => 'Some Co']);
+        $this->workAt($agent, Company::factory()->create(['name' => 'Some Co']));   // a client the agent works for
 
         // The agent is working normally.
         $this->loginAs($agent->email)->assertSee('Target Agent');

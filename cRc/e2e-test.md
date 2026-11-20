@@ -67,7 +67,7 @@ Only values the tests assert on are listed. Everything else is random from the f
 | Agent | name `Read Only Rae`, password `password` |
 | Companies | `Acme Corp` (Nashik), `Hooli Inc` (Vapi) |
 | Contacts | `Carol Clark` (`carol@acme.example`, `9700000001`), `Dan Dixon` (`9700000002`) |
-| Restricted-agent check | agent with `all_companies=0` assigned `Assigned Co`; must still see `Assigned Person` and `Unassigned Person` (company `Unassigned Co`) |
+| Ticket-based access | Rae has (resolved) tickets at Carol and Dan, so she sees both clients. A second agent with a ticket only at `Assigned Co` sees `Assigned Person` but not `Unassigned Person` (company `Unassigned Co`, a 404) until a ticket there is assigned to them |
 
 ### SecurityJourneyTest
 | Data | Value |
@@ -308,6 +308,39 @@ to their ticket list, not a 404. The live bell (20 s polling, toast, opening in 
 - Admins cannot be deleted; agents cannot delete others; deleting twice is a 404; a deleted agent's email cannot be reused and
   the error says why.
 
+### TicketStatusFromLogTest (change a ticket's status from the conversation log; 11 tests)
+
+- The Conversations page has a "Ticket status" column (coloured `pill st-<status>`) showing the linked ticket's current status;
+  for another agent's ticket it shows nothing (the row already says "another agent's ticket").
+
+- The ticket page's "Log a conversation" form has a "Ticket status" dropdown: "Keep as <current>" (empty, the default) plus the
+  other statuses (Open, In progress, Waiting, Resolved). Saving the log with a status changes the ticket in the same
+  transaction and the flash says "Conversation logged. TKT-0001 is now In progress."; an empty value keeps the status.
+- "Resolved" from the log closes the ticket: it leaves the open lists and counts and shows under the "Resolved" filter.
+- An unknown status (e.g. "not_resolved") is rejected and nothing is saved. On the contact page the status applies only to the ticket picked under
+  "About ticket"; with no ticket it is an error. Another agent's ticket cannot be changed (404 / cannot be linked); admins can
+  change any ticket.
+- The holding agent picking "Resolved" dispatches `SendTicketCompletedNotification` (same rule as the Edit form, shared in
+  `App\Services\TicketCompletion`); other statuses do not.
+
+### Agent access from assigned tickets (CompanyContactTest, InteractionTest, TicketAssignmentTest, journeys)
+
+- Agents see only the companies of their tickets, those companies' contacts, and conversations on their tickets or logged by
+  them with a contact they can still see; everything else is a 404. An agent with no tickets sees no companies/contacts.
+  Reassigning the ticket moves the access. Agents cannot log with, or open a ticket for, a contact they cannot see
+  ("Choose a contact from a company you work with."). Admins see everything.
+- Helpers in `tests/TestCase.php`: `workAt($agent, $contactOrCompany)` (adds a resolved ticket there) and
+  `agentsWorkAtEveryNewContact(...)` (page-rendering tests in ContactPageTest and InteractionTest).
+
+### SideMenuTest (left sidebar with tickets by status; 4 tests)
+
+- No count badges; the list being shown is marked `active`, and no tile is active on other pages.
+
+- Every signed-in page (admin and agent) has the left sidebar (`<aside id="side-menu">`, `js/sidebar.js`) with All / Open /
+  In progress / Waiting / Resolved tickets links to `tickets.index?status=...`; the login page has none.
+- Each status link lists only that status, and an agent only their own tickets; "all" lists every status. The active link and the
+  same-page swap are checked by hand in the browser.
+
 ### HorizonDashboardTest (2 tests)
 
 - Gate `viewHorizon`: only active admins; guests, agents and deactivated admins are refused.
@@ -403,7 +436,7 @@ Per-test names: `php artisan test tests/Unit --testdox`.
 | 3 | Admin enters a client company and its contacts end to end | ClientDataEntryJourneyTest |
 | 4 | Nothing can be deleted, even by an admin in session | ClientDataEntryJourneyTest |
 | 5 | Agent browses and searches but cannot change anything | AgentReadOnlyJourneyTest |
-| 6 | Restricted agent still sees every company and contact | AgentReadOnlyJourneyTest |
+| 6 | Agent sees only the clients of tickets the admin assigned to them | AgentReadOnlyJourneyTest |
 | 7 | Guest is redirected to login from every protected URL | SecurityJourneyTest |
 | 8 | Every registered route is either public or in the protected list | SecurityJourneyTest |
 | 9 | There is no registration flow, even when logged in | SecurityJourneyTest |

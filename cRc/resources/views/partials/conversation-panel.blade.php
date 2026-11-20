@@ -73,6 +73,20 @@
         </details>
         @error('interaction_at')<div class="error">{{ $message }}</div>@enderror
 
+        {{-- Optional: change the ticket's status together with the log. Empty = keep it. On the contact page it only
+             applies when a ticket is picked under "About ticket" (the server checks). --}}
+        @if(isset($currentStatus) || isset($ticketChoices))
+            <label for="ticket_status" style="margin-top:.6rem">Ticket status</label>
+            <select id="ticket_status" name="ticket_status">
+                <option value="">{{ isset($currentStatus) ? 'Keep as '.\App\Models\Ticket::statusLabel($currentStatus) : 'No change' }}</option>
+                @foreach(\App\Models\Ticket::STATUSES as $s)
+                    @continue(isset($currentStatus) && $s === $currentStatus)
+                    <option value="{{ $s }}" @selected(old('ticket_status') === $s)>{{ \App\Models\Ticket::statusLabel($s) }}</option>
+                @endforeach
+            </select>
+            @error('ticket_status')<div class="error">{{ $message }}</div>@enderror
+        @endif
+
         <div class="log-foot">
             <label class="fu">Follow up on
                 <input type="date" name="follow_up_on" value="{{ old('follow_up_on') }}" min="{{ now()->toDateString() }}">

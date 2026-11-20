@@ -57,7 +57,7 @@ class DashboardController extends Controller
             ->where('users.role', User::ROLE_AGENT)
             ->leftJoin('tickets', function ($join) {
                 $join->on('tickets.assigned_to', '=', 'users.user_id')
-                    ->where('tickets.status', '!=', 'resolved');
+                    ->whereNotIn('tickets.status', Ticket::CLOSED_STATUSES);
             })
             ->groupBy('users.user_id', 'users.full_name', 'users.is_active')
             ->havingRaw('users.is_active = 1 OR COUNT(tickets.ticket_id) > 0')

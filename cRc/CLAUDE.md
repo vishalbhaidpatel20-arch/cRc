@@ -30,16 +30,42 @@ Internal support desk: a software company tracks its 10 client companies, the cl
   the account comes back active, but queued tickets and cancelled follow-ups are not handed back automatically.
 - There is NO public registration. Only admins create agents (`Admin\UserController`); role is forced to `agent`
   server-side. Do not add a `/register` route.
-- Access control: `role:admin` / `role:agent` middleware plus `active` (logs out deactivated users). Agents can view
-  every company and contact, but only their own tickets (see Tickets below).
+- Access control: `role:admin` / `role:agent` middleware plus `active` (logs out deactivated users). Agents see only what
+  comes from the tickets an admin assigned to them: their own tickets (Tickets below), the COMPANIES of those tickets, the
+  CONTACTS of those companies, and CONVERSATIONS on their tickets plus the ones they logged with a contact they can still
+  see. Global scopes `agent_visibility` on `Company`, `Contact`, `Interaction` (rules in ONE place: `App\Support\AgentAccess`);
+  admins and code with nobody signed in are unfiltered. Anything else is a 404 (not 403). Reassigning a ticket moves the
+  access. An agent with no tickets sees no companies or contacts and cannot open a ticket (`TicketController::store` checks
+  the contact through the scoped model: `Rule::exists` and `DB::table` bypass the scopes, never use them for agent requests).
+  Belongs-to relations from a visible row (`Ticket::company/contact`, `Contact::company`, `Interaction::contact`,
+  `FollowUp::contact`) skip the scope so a view never gets null. The `all_companies` / selected-companies setting on an agent
+  is stored but not used for access. Tests: `$this->workAt($agent, $contactOrCompany)` gives the agent a resolved ticket
+  there; `agentsWorkAtEveryNewContact(...)` for page tests (tests/TestCase.php).
 - Tickets: agent-only visibility lives in ONE place, the `Ticket` global scope (`agent_visibility`), backed by
   `TicketPolicy`. Agents therefore get a 404 (not 403) for tickets that are not theirs, including unassigned ones. Admins
   are unfiltered. Use `Ticket::withoutGlobalScopes()` only for admin/system code, never for agent requests. Only admins
   assign or reassign (`POST /tickets/{id}/assign`, `TicketPolicy::assign`); every assignment writes a
   `ticket_assignments` row and sends the in-app `TicketAssigned` notification. A ticket's company always comes from
   its contact. Agent-created tickets are auto-assigned to the agent. Tickets are never deleted.
-- Conversations (`interactions`): append-only log, no edit/delete routes. Any agent can log with any active contact and
-  read the whole log (project scope: conversations are open to all agents). Linking a conversation to a ticket must go
+- Ticket statuses (`Ticket::STATUSES`): open, in_progress, waiting, resolved. `Ticket::CLOSED_STATUSES` (resolved) is final;
+  use `Ticket::open()` / `isClosed()` rather than comparing with `'resolved'` by hand. Show a status with `Ticket::statusLabel()`. The status changes from the ticket Edit pop-up or from the "Ticket status" dropdown of the
+  "Log a conversation" form (`ticket_status`, empty = keep; on the contact page only with a ticket picked; `TicketPolicy::update`).
+  Only "resolved" by the holding agent sends `TicketCompleted` (`App\Services\TicketCompletion`, shared by both forms).
+- Left sidebar (`partials/sidebar`, `public/js/sidebar.js`): a 96px rail (= header padding x2 + 48px logo, so the tiles line up
+  under the header logo) with a "Tickets" heading and one tile per status (All, Open, In progress, Waiting, Resolved): each in
+  its status colour (same as the `pill st-*` table labels), an icon, a short label and a count badge (Ticket scope, so agents
+  count only their own); full name + count in `aria-label`; the active tile (server-side and `sidebar.js`) is filled with a bar on
+  the left. It carries `data-sync`: `partial.js` copies any `[data-sync][id]` element outside `<main>` from each in-place
+  response, so counts stay current. Always visible on signed-in pages, beside `<main>` inside `.app-body` (NOT in the header
+  nav), sticky; a row on top under 860px.
+- Grid look: the AG Grid theme lives in `resources/js/grid.jsx` (`crcTheme`, `themeQuartz.withParams`: blue header, striped and
+  hover rows, rounded corners); sortable columns always show sort arrows; each column is at least as wide as its header text.
+  Do NOT change row/header/pager heights there (`grid-size.js` computes the grid height). Ticket Type/Status and user
+  Role/Status cells are pills. Run `npm run build` after changing `grid.jsx`. Links: All / Open / In progress / Waiting / Resolved tickets
+  (`tickets.index?status=...`, agents see only their own). Links carry `data-swap-main` so `partial.js` swaps the whole `<main>`
+  even on the same page (the filter bar follows); `sidebar.js` marks the active link after each navigation.
+- Conversations (`interactions`): append-only log, no edit/delete routes. An agent logs only with contacts they can see and
+  reads only the conversations the access rule above allows; admins read the whole log. Linking a conversation to a ticket must go
   through the `Ticket` model so the visibility scope applies (never `Rule::exists('tickets')`, which bypasses it). The
   author (`user_id`) always comes from the session. The DB trigger keeps `contacts.last_contacted_at` current.
 - Contact page (`contacts/show`): two columns (details, module tags, "Prefers" on the left; log form above the

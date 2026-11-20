@@ -97,9 +97,11 @@ class NotificationQueueTest extends TestCase
 
     public function test_an_agent_creating_their_own_ticket_dispatches_nothing(): void
     {
-        $this->as($this->alice)->post(route('tickets.store'), $this->payload(Contact::factory()->create()))->assertRedirect();
+        $contact = Contact::factory()->create();
+        $this->workAt($this->alice, $contact);   // she may only open tickets where she already works (adds 1 resolved ticket)
+        $this->as($this->alice)->post(route('tickets.store'), $this->payload($contact))->assertRedirect();
 
-        $this->assertDatabaseCount('tickets', 1);
+        $this->assertDatabaseCount('tickets', 2);
         Queue::assertNothingPushed();
     }
 

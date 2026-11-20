@@ -98,6 +98,12 @@
             swapped.push(main);
         }
 
+        // Small areas outside <main> that show live data (the left sidebar's counts and active tile): data-sync + an id.
+        doc.querySelectorAll('[data-sync][id]').forEach(function (nd) {
+            var cd = document.getElementById(nd.id);
+            if (cd && cd.innerHTML !== nd.innerHTML) { cd.innerHTML = nd.innerHTML; }
+        });
+
         // Pop-ups that live outside the swapped areas: refresh the one that was submitted (fresh fields, or the
         // same fields with their errors), then open or close it the way the server decided.
         if (opts.dialogId) {
@@ -230,7 +236,8 @@
         if (url.pathname === location.pathname && url.search === location.search && url.hash) { return; }   // jump to #anchor
 
         e.preventDefault();
-        send(url, { credentials: 'same-origin', cache: 'no-cache' }, { push: true, dialogId: null })
+        // data-swap-main: swap the whole content area even on the same page (side menu links change the filter bar too).
+        send(url, { credentials: 'same-origin', cache: 'no-cache' }, { push: true, dialogId: null, forceMain: a.hasAttribute('data-swap-main') })
             .catch(function () { location.href = url.href; });
     });
 

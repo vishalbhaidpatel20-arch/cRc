@@ -20,7 +20,8 @@ class TicketFactory extends Factory
             'ticket_no' => 'TKT-'.fake()->unique()->numerify('T#######'),
             'contact_id' => Contact::factory(),
             // Always the contact's own company, so the data stays consistent.
-            'company_id' => fn (array $attrs) => Contact::find($attrs['contact_id'])->company_id,
+            // withoutGlobalScopes: a test may already be signed in as an agent who cannot see this contact yet.
+            'company_id' => fn (array $attrs) => Contact::withoutGlobalScopes()->find($attrs['contact_id'])->company_id,
             'assigned_to' => null,
             'topic' => 'query',
             'priority' => 'medium',

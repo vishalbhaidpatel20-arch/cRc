@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Jobs\SendTicketAssignedNotification;
-use App\Jobs\SendTicketCompletedNotification;
 use App\Models\Company;
 use App\Models\Contact;
 use App\Models\Interaction;
@@ -11,12 +10,14 @@ use App\Models\Ticket;
 use App\Models\TicketAssignment;
 use App\Models\User;
 use App\Services\TemplateRenderer;
+use App\Services\TicketCompletion;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 /**
@@ -106,6 +107,12 @@ class TicketController extends Controller
             'assigned_to' => ['nullable', 'integer', $this->assignableAgentRule()],
         ]);
 
+        // Rule::exists ignores the Contact scope: an agent may only open a ticket for a contact they can see
+        // (a company of one of their tickets). Checked through the model so the scope applies.
+        if ($user->isAgent() && ! Contact::whereKey($data['contact_id'])->exists()) {
+            throw ValidationException::withMessages(['contact_id' => 'Choose a contact from a company you work with.']);
+        }
+
         // An agent can never pick the assignee: their own ticket is assigned to themselves,
         // otherwise they would lose sight of what they just logged.
         $assigneeId = $user->isAdmin() ? ($data['assigned_to'] ?? null) : $user->user_id;
@@ -159,7 +166,7 @@ class TicketController extends Controller
         ]);
     }
 
-    public function update(Request $request, Ticket $ticket): RedirectResponse
+    public function update(Request $request, Ticket $ticket, TicketCompletion $completion): RedirectResponse
     {
         Gate::authorize('update', $ticket);
 
@@ -173,28 +180,13 @@ class TicketController extends Controller
             'due_at' => ['nullable', 'date'],
         ]);
 
-        $wasResolved = $ticket->status === 'resolved';
+        $oldStatus = $ticket->status;
         $ticket->update($data);
 
         // An agent just finished their ticket: tell the admin who gave it to them.
-        if (! $wasResolved && $ticket->status === 'resolved') {
-            $this->notifyCompleted($ticket, $request->user());
-        }
+        $completion->afterStatusChange($ticket, $oldStatus, $request->user());
 
         return redirect()->route('tickets.show', $ticket)->with('status', 'Ticket updated.');
-    }
-
-    /**
-     * Only when the agent who holds the ticket resolves it. The recipient is the admin who made the latest assignment
-     * to that agent; if that admin is gone or inactive (or the agent created the ticket), every other active admin.
-     */
-    private function notifyCompleted(Ticket $ticket, User $actor): void
-    {
-        if ($actor->isAdmin() || $ticket->assigned_to !== $actor->user_id) {
-            return;
-        }
-
-        SendTicketCompletedNotification::dispatch($ticket->ticket_id, $actor->user_id);
     }
 
     /** Admin only: assign an unassigned ticket or move it to another agent. */

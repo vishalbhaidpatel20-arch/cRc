@@ -28,10 +28,10 @@ class AccountRemoval
                 throw new \InvalidArgumentException('Only an agent account that still exists can be deleted.');
             }
 
-            // Unresolved tickets go back to the queue, with a history row saying why. Resolved ones keep their last holder.
+            // Open tickets go back to the queue, with a history row saying why. Closed ones keep their last holder.
             Ticket::withoutGlobalScopes()
                 ->where('assigned_to', $locked->user_id)
-                ->where('status', '!=', 'resolved')
+                ->whereNotIn('status', Ticket::CLOSED_STATUSES)
                 ->get()
                 ->each(function (Ticket $ticket) use ($locked, $actor) {
                     TicketAssignment::create([

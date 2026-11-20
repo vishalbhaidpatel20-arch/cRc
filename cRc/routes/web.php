@@ -46,7 +46,8 @@ Route::middleware(['auth', 'active'])->group(function () {
         Route::patch('/contacts/{contact}/active', [ContactController::class, 'toggleActive'])->name('contacts.active');
     });
 
-    // Read-only for every logged-in user (agents can view all companies and contacts).
+    // Read-only for every logged-in user. Agents only reach the companies of their tickets and those companies' contacts
+    // (global scopes, App\Support\AgentAccess); anything else is a 404.
     Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
     Route::get('/companies/{company}', [CompanyController::class, 'show'])->name('companies.show');
     Route::get('/contacts', [ContactController::class, 'index'])->name('contacts.index');
@@ -97,7 +98,8 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('notifications.open');
     Route::post('/notifications/read', [NotificationController::class, 'markAllRead'])->name('notifications.read');
 
-    // Conversation log. Everyone logs and reads; entries are append-only (no edit/delete routes).
+    // Conversation log. Agents log with and read only what their tickets allow (App\Support\AgentAccess); admins read all.
+    // Entries are append-only (no edit/delete routes).
     Route::get('/interactions', [InteractionController::class, 'index'])->name('interactions.index');
     Route::post('/tickets/{ticket}/interactions', [InteractionController::class, 'storeForTicket'])->name('tickets.interactions.store');
     Route::post('/contacts/{contact}/interactions', [InteractionController::class, 'storeForContact'])->name('contacts.interactions.store');

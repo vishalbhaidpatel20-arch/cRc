@@ -1,9 +1,30 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
+
+// One look for every grid, in the app's blues (header #12307a / #2f80ed). Sizes (row 56px, header and pager) are NOT
+// changed here: public/js/grid-size.js computes the grid height from them.
+const crcTheme = themeQuartz.withParams({
+    fontFamily: 'inherit',
+    fontSize: 14,
+    foregroundColor: '#1f2933',
+    accentColor: '#2f80ed',
+    borderColor: '#e3e9f5',
+    wrapperBorderRadius: 12,
+    headerBackgroundColor: '#f2f6fd',
+    headerTextColor: '#12307a',
+    headerFontWeight: 600,
+    headerColumnResizeHandleColor: '#c9d6ee',
+    oddRowBackgroundColor: '#fafcff',
+    rowHoverColor: '#eef4ff',
+    rowBorder: { color: '#edf1f8' },
+    columnBorder: false,
+    cellHorizontalPaddingScale: 1.1,
+    iconColor: '#5b6b86',
+});
 
 // host element -> { root, columns, flex, rows }, so a grid can be re-laid-out on resize and unmounted when partial.js
 // swaps its area out.
@@ -31,10 +52,13 @@ function Grid({ columns, heads, flex, rows, pageSize, rowHeight }) {
                 valueGetter: (p) => p.data.text[i],
                 cellRenderer: (p) => <Cell html={p.data.html[i]} text={p.data.text[i]} />,
                 sortable: title !== '' && !heads[i].hasAttribute('data-nosort'),
+                unSortIcon: true, // sortable columns always show the up/down arrows, so people know they can click them
+                headerTooltip: title !== '' && !heads[i].hasAttribute('data-nosort') ? `Sort by ${title}` : undefined,
                 comparator: (x, y) => String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: 'base' }),
                 suppressHeaderMenuButton: true,
                 flex: flex[i],
-                minWidth: title === '' ? 150 : 110,
+                // Wide enough for the whole header text plus its sort arrows, so no column name is cut to "Follo...".
+                minWidth: title === '' ? 150 : Math.max(110, Math.round(title.length * 8.5) + 52),
                 cellStyle: { display: 'flex', alignItems: 'center' },
             })),
         [columns, heads, flex],
@@ -51,6 +75,7 @@ function Grid({ columns, heads, flex, rows, pageSize, rowHeight }) {
 
     return (
         <AgGridReact
+            theme={crcTheme}
             columnDefs={columnDefs}
             rowData={rows}
             rowHeight={rowHeight}

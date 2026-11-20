@@ -64,7 +64,7 @@ class TicketAssignmentJourneyTest extends TestCase
         $this->submit('PUT', route('tickets.update', $ticket), [
             'topic' => 'bug', 'priority' => 'critical', 'status' => 'in_progress',
             'title' => 'TPS report totals are wrong', 'description' => 'Cover sheet missing',
-        ], route('tickets.edit', $ticket))->assertOk()->assertSee('Ticket updated.')->assertSee('in progress');
+        ], route('tickets.edit', $ticket))->assertOk()->assertSee('Ticket updated.')->assertSee('In progress');
         $this->logout();
 
         // 6. Admin reassigns to Ben. Anna loses access, Ben gains it, history keeps both.
@@ -92,6 +92,7 @@ class TicketAssignmentJourneyTest extends TestCase
     {
         $agent = $this->makeAgent(['full_name' => 'Solo Agent']);
         $contact = Contact::factory()->create(['full_name' => 'Samir Nagheenanajar']);
+        $this->workAt($agent, $contact);   // agents open tickets only at clients they already work for
 
         $this->loginAs($agent->email);
         $this->browse(route('tickets.create', ['contact_id' => $contact->contact_id]))

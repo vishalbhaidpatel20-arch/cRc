@@ -75,13 +75,24 @@ class TicketAssignmentTest extends TestCase
         $this->assertDatabaseCount('notifications', 0);
     }
 
-    public function test_agent_created_ticket_is_assigned_to_themselves_whatever_they_post(): void
+    public function test_an_agent_cannot_open_a_ticket_for_a_company_they_do_not_work_with(): void
     {
         $this->actingAs($this->alice)
-            ->post(route('tickets.store'), $this->payload(Contact::factory()->create(), ['assigned_to' => $this->bob->user_id]))
+            ->post(route('tickets.store'), $this->payload(Contact::factory()->create()))
+            ->assertSessionHasErrors(['contact_id' => 'Choose a contact from a company you work with.']);
+
+        $this->assertDatabaseCount('tickets', 0);
+    }
+
+    public function test_agent_created_ticket_is_assigned_to_themselves_whatever_they_post(): void
+    {
+        $contact = Contact::factory()->create();
+        $this->workAt($this->alice, $contact);
+        $this->actingAs($this->alice)
+            ->post(route('tickets.store'), $this->payload($contact, ['assigned_to' => $this->bob->user_id]))
             ->assertRedirect();
 
-        $ticket = Ticket::withoutGlobalScopes()->firstOrFail();
+        $ticket = Ticket::withoutGlobalScopes()->where('title', '!=', '')->latest('ticket_id')->firstOrFail();
         $this->assertSame($this->alice->user_id, $ticket->assigned_to);
         $this->assertDatabaseCount('notifications', 0);   // no alert for assigning yourself
         $this->assertDatabaseHas('ticket_assignments', ['ticket_id' => $ticket->ticket_id, 'to_user' => $this->alice->user_id]);

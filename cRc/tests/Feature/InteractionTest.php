@@ -28,6 +28,9 @@ class InteractionTest extends TestCase
         $this->admin = User::factory()->admin()->create(['full_name' => 'Boss Admin']);
         $this->alice = User::factory()->agent()->create(['full_name' => 'Alice Agent']);
         $this->bob = User::factory()->agent()->create(['full_name' => 'Bob Agent']);
+        // Both agents can see every contact made in these tests (access to contacts is tested in CompanyContactTest);
+        // which CONVERSATIONS they see is still the real rule. Contact::withoutEvents() makes one nobody can see.
+        $this->agentsWorkAtEveryNewContact($this->alice, $this->bob);
     }
 
     private function logPayload(array $over = []): array
@@ -110,7 +113,15 @@ class InteractionTest extends TestCase
 
     // ---- logging from a contact ------------------------------------------
 
-    public function test_agent_logs_a_conversation_with_any_contact_without_a_ticket(): void
+    public function test_agent_cannot_log_with_a_contact_of_a_company_they_do_not_work_for(): void
+    {
+        $stranger = Contact::withoutEvents(fn () => Contact::factory()->create());
+
+        $this->actingAs($this->alice)->post(route('contacts.interactions.store', $stranger), $this->logPayload())->assertNotFound();
+        $this->assertDatabaseCount('interactions', 0);
+    }
+
+    public function test_agent_logs_a_conversation_with_a_contact_they_can_see_without_a_ticket(): void
     {
         $contact = Contact::factory()->create();
 
@@ -231,13 +242,25 @@ class InteractionTest extends TestCase
 
     // ---- reading the log -------------------------------------------------
 
-    public function test_every_agent_can_read_the_whole_conversation_log(): void
+    public function test_agents_read_only_conversations_of_their_tickets_and_their_own(): void
     {
+        $alicesTicket = Ticket::factory()->assignedTo($this->alice)->create();
+        $bobsTicket = Ticket::factory()->assignedTo($this->bob)->create();
         Interaction::factory()->create(['user_id' => $this->bob->user_id, 'summary' => 'Bob talked about invoices']);
+        Interaction::factory()->create(['user_id' => $this->bob->user_id, 'ticket_id' => $bobsTicket->ticket_id, 'contact_id' => $bobsTicket->contact_id, 'summary' => 'Bob on his ticket']);
+        Interaction::factory()->create(['user_id' => $this->bob->user_id, 'ticket_id' => $alicesTicket->ticket_id, 'contact_id' => $alicesTicket->contact_id, 'summary' => 'Bob earlier on her ticket']);
         Interaction::factory()->create(['user_id' => $this->alice->user_id, 'summary' => 'Alice talked about printers']);
 
-        $this->actingAs($this->alice)->get(route('interactions.index'))
-            ->assertOk()->assertSee('Bob talked about invoices')->assertSee('Alice talked about printers');
+        $this->actingAs($this->alice)->get(route('interactions.index'))->assertOk()
+            ->assertSee('Alice talked about printers')     // she logged it
+            ->assertSee('Bob earlier on her ticket')       // on her ticket, whoever logged it
+            ->assertDontSee('Bob talked about invoices')
+            ->assertDontSee('Bob on his ticket');
+
+        // The admin reads the whole log.
+        $this->app['auth']->forgetGuards();
+        $this->actingAs($this->admin)->get(route('interactions.index'))
+            ->assertSee('Bob talked about invoices')->assertSee('Bob on his ticket')->assertSee('Alice talked about printers');
     }
 
     public function test_log_filters(): void
@@ -259,8 +282,10 @@ class InteractionTest extends TestCase
 
     public function test_only_mine_filter_and_agents_cannot_filter_by_other_users(): void
     {
+        $alicesTicket = Ticket::factory()->assignedTo($this->alice)->create();
         Interaction::factory()->create(['user_id' => $this->alice->user_id, 'summary' => 'Mine alice entry']);
-        Interaction::factory()->create(['user_id' => $this->bob->user_id, 'summary' => 'Bobs entry here']);
+        // Bob logged this on Alice's ticket, so she can read it, but it is not hers.
+        Interaction::factory()->create(['user_id' => $this->bob->user_id, 'ticket_id' => $alicesTicket->ticket_id, 'contact_id' => $alicesTicket->contact_id, 'summary' => 'Bobs entry here']);
         $this->actingAs($this->alice);
 
         $this->get(route('interactions.index', ['mine' => 1]))->assertSee('Mine alice entry')->assertDontSee('Bobs entry here');
@@ -270,8 +295,9 @@ class InteractionTest extends TestCase
 
     public function test_log_hides_the_link_to_another_agents_ticket(): void
     {
+        // Alice logged this while the ticket was hers; it has since moved to Bob. She keeps her own entry, not the ticket.
         $bobsTicket = Ticket::factory()->assignedTo($this->bob)->create();
-        Interaction::factory()->create(['ticket_id' => $bobsTicket->ticket_id, 'user_id' => $this->bob->user_id, 'contact_id' => $bobsTicket->contact_id, 'summary' => 'Chat about bob ticket']);
+        Interaction::factory()->create(['ticket_id' => $bobsTicket->ticket_id, 'user_id' => $this->alice->user_id, 'contact_id' => $bobsTicket->contact_id, 'summary' => 'Chat about bob ticket']);
 
         $this->actingAs($this->alice)->get(route('interactions.index'))
             ->assertSee('Chat about bob ticket')->assertSee("another agent's ticket", false)

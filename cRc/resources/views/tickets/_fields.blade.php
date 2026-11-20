@@ -42,7 +42,7 @@
     <label>Status</label>
     <select name="status">
         @foreach(\App\Models\Ticket::STATUSES as $s)
-            <option value="{{ $s }}" @selected(old('status', $ticket->status) === $s)>{{ str_replace('_', ' ', $s) }}</option>
+            <option value="{{ $s }}" @selected(old('status', $ticket->status) === $s)>{{ \App\Models\Ticket::statusLabel($s) }}</option>
         @endforeach
     </select>
 @endif

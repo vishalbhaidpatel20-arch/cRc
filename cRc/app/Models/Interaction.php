@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\AgentAccess;
 use Database\Factories\InteractionFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -43,9 +44,23 @@ class Interaction extends Model
         return $channel === 'whatsapp' ? 'WhatsApp' : ucfirst($channel);
     }
 
+    /**
+     * Agents only see conversations on their own tickets, plus the ones they logged with a contact they can still see
+     * (App\Support\AgentAccess). Admins see the whole log.
+     */
+    protected static function booted(): void
+    {
+        static::addGlobalScope('agent_visibility', function (Builder $query) {
+            if ($agent = AgentAccess::agent()) {
+                AgentAccess::scopeInteractions($query, $agent);
+            }
+        });
+    }
+
+    /** Unscoped: the contact of a conversation the viewer may see (never null in a view). */
     public function contact(): BelongsTo
     {
-        return $this->belongsTo(Contact::class, 'contact_id', 'contact_id');
+        return $this->belongsTo(Contact::class, 'contact_id', 'contact_id')->withoutGlobalScope('agent_visibility');
     }
 
     public function user(): BelongsTo
